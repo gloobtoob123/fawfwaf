@@ -1,6 +1,6 @@
 -- Variables 
 local uis = game:GetService("UserInputService") 
-local players = game:GetService("Players") 
+local players = game:GetService("Players")
 local ws = game:GetService("Workspace")
 local rs = game:GetService("ReplicatedStorage")
 local http_service = game:GetService("HttpService")
@@ -612,7 +612,6 @@ function library:window(properties)
     end
 
     function cfg.init_config()
-        -- This function is called from the example to initialize config system
         library:update_config_list()
     end
 
@@ -708,13 +707,17 @@ library.sgui = library:create("ScreenGui", {
 
 function notifications:refresh_notifs() 
     for i, v in ipairs(notifications.notifs) do 
-        local Position = vec2(50, 50)
-        tween_service:Create(v, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Position = dim_offset(Position.X, Position.Y + (i * 30))}):Play()
+        if v and v.Parent then
+            local Position = vec2(50, 50)
+            tween_service:Create(v, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Position = dim_offset(Position.X, Position.Y + ((i-1) * 30))}):Play()
+        end
     end
 end
 
 function notifications:fade(path, is_fading)
     local fading = is_fading and 1 or 0 
+    
+    if not path or not path.Parent then return end
     
     tween_service:Create(path, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {BackgroundTransparency = fading}):Play()
 
@@ -727,7 +730,7 @@ function notifications:fade(path, is_fading)
             continue
         end 
 
-        if instance:IsA("TextLabel") then
+        if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
             tween_service:Create(instance, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextTransparency = fading}):Play()
         elseif instance:IsA("Frame") then
             tween_service:Create(instance, TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {BackgroundTransparency = is_fading and 1 or 0.6}):Play()
@@ -743,7 +746,7 @@ function notifications:create_notification(options)
     -- Instances
         local outline = library:create("Frame", {
             Parent = library.sgui;
-            Position = dim_offset(-200, 50 + (#notifications.notifs * 30));
+            Position = dim_offset(-200, 50);
             BorderColor3 = rgb(0, 0, 0);
             Size = dim2(0, 0, 0, 24);
             BorderSizePixel = 0;
@@ -803,7 +806,9 @@ function notifications:create_notification(options)
 
         task.wait(0.5)
 
-        outline:Destroy() 
+        if outline and outline.Parent then
+            outline:Destroy() 
+        end
         
         notifications:refresh_notifs()
     end)
@@ -875,7 +880,7 @@ local watermark = library:watermark({name = "priv9"})
 local fps = 0
 local watermark_delay = tick() 
 
-run.RenderStepped:Connect(function()
+library:connection(run.RenderStepped, function()
     fps += 1
 
     if tick() - watermark_delay > 1 then 
@@ -1093,7 +1098,9 @@ function library:toggle(options)
             cfg.callback(bool)
 
             if cfg.folding then 
-                elements.Visible = bool
+                if elements then
+                    elements.Visible = bool
+                end
             end
         end 
 
@@ -1114,7 +1121,7 @@ end
 
 function library:list(options)
     local cfg = {
-        callback = options and options.callback or function() end, 
+        callback = options.callback or function() end, 
         name = options.name or nil, 
 
         scale = options.size or 90, 
@@ -1203,7 +1210,9 @@ function library:list(options)
     
         function cfg.refresh_options(options)
             for _, v in pairs(cfg.option_instances) do 
-                v:Destroy() 
+                if v then
+                    v:Destroy() 
+                end
             end 
     
             cfg.option_instances = {}
@@ -1220,7 +1229,7 @@ function library:list(options)
     
                     cfg.current_instance = button
                     button.TextColor3 = themes.preset.text
-    
+
                     flags[cfg.flag] = button.Text
                     
                     cfg.callback(button.Text)
@@ -1230,20 +1239,24 @@ function library:list(options)
         
         function cfg.filter_options(text)
             for _, v in pairs(cfg.option_instances) do 
-                if string.find(v.Text:lower(), text:lower()) then 
-                    v.Visible = true 
-                else 
-                    v.Visible = false
+                if v then
+                    if string.find(v.Text:lower(), text:lower()) then 
+                        v.Visible = true 
+                    else 
+                        v.Visible = false
+                    end
                 end
             end
         end
 
         function cfg.set(value)
             for _, buttons in pairs(cfg.option_instances) do 
-                if buttons.Text == value then 
+                if buttons and buttons.Text == value then 
                     buttons.TextColor3 = themes.preset.text
                 else 
-                    buttons.TextColor3 = rgb(170, 170, 170)
+                    if buttons then
+                        buttons.TextColor3 = rgb(170, 170, 170)
+                    end
                 end 
             end 
 
@@ -1395,10 +1408,13 @@ function library:dropdown(options)
         ignore = options.ignore or false, 
     }   
 
-    cfg.default = options.default or (cfg.multi and {cfg.items[1]}) or cfg.items[1] or "None"
+    cfg.default = options.default or (cfg.multi and {}) or cfg.items[1] or "None"
 
     if cfg.multi then
         flags[cfg.flag] = {}
+        if type(cfg.default) == "table" then
+            cfg.multi_items = cfg.default
+        end
     else
         flags[cfg.flag] = cfg.items[1]
     end
@@ -1556,7 +1572,11 @@ function library:dropdown(options)
                 end
             end
 
-            text.Text = if isTable then concat(selected, ", ") else selected[1] or value
+            if cfg.multi then
+                text.Text = #selected > 0 and concat(selected, ", ") or "Select..."
+            else
+                text.Text = selected[1] or value
+            end
 
             if cfg.multi then
                 flags[cfg.flag] = selected
@@ -1569,10 +1589,13 @@ function library:dropdown(options)
         
         function cfg.refresh_options(list) 
             for _, option in pairs(cfg.option_instances) do 
-                option:Destroy() 
+                if option then
+                    option:Destroy() 
+                end
             end
             
             cfg.option_instances = {} 
+            cfg.multi_items = {}
 
             for _, option in ipairs(list) do 
                 local button = cfg.render_option(option)
@@ -1585,8 +1608,10 @@ function library:dropdown(options)
 
                         if selected_index then 
                             remove(cfg.multi_items, selected_index)
+                            button.TextColor3 = rgb(170, 170, 170)
                         else
                             insert(cfg.multi_items, button.Text)
+                            button.TextColor3 = themes.preset.text
                         end
                         
                         cfg.set(cfg.multi_items) 				
@@ -1602,7 +1627,11 @@ function library:dropdown(options)
 
         cfg.refresh_options(cfg.items)
 
-        cfg.set(cfg.default)
+        if cfg.multi then
+            cfg.set(cfg.default)
+        else
+            cfg.set(cfg.default)
+        end
 
         config_flags[cfg.flag] = cfg.set
     -- 
@@ -1695,7 +1724,7 @@ function library:colorpicker(options)
         -- Elements
             local colorpicker = library:create("Frame", {
                 Parent = library.gui;
-                Position = dim2(0.6888179183006287, 0, 0.24751244485378265, 0);
+                Position = dim2(0.5, -75, 0.5, -75);
                 BorderColor3 = rgb(0, 0, 0);
                 Visible = false;
                 Size = dim2(0, 150, 0, 150);
@@ -1923,7 +1952,23 @@ function library:colorpicker(options)
         function cfg.set_visible(bool) 
             colorpicker.Visible = bool
             
-            colorpicker.Position = dim_offset(colorpicker_element_color.AbsolutePosition.X - 150, colorpicker_element_color.AbsolutePosition.Y + 20)
+            if bool then
+                local element_pos = colorpicker_element_color.AbsolutePosition
+                local picker_size = colorpicker.AbsoluteSize
+                local screen_size = workspace.CurrentCamera.ViewportSize
+                
+                local x = element_pos.X
+                local y = element_pos.Y + 20
+                
+                if x + picker_size.X > screen_size.X then
+                    x = screen_size.X - picker_size.X
+                end
+                if y + picker_size.Y > screen_size.Y then
+                    y = element_pos.Y - picker_size.Y - 5
+                end
+                
+                colorpicker.Position = dim_offset(x, y)
+            end
         end
 
         function cfg.set(color, alpha)
@@ -2012,7 +2057,7 @@ function library:colorpicker(options)
             dragging_hue = true 
         end)
         
-        saturation_button.MouseButton1Down:Connect(function()
+        saturation_value_button.MouseButton1Down:Connect(function()
             dragging_sat = true  
         end)
         
@@ -2243,7 +2288,9 @@ function library:keybind(options)
     -- Functions 
         function cfg.modify_mode_color(path)
             for _, v in pairs(cfg.hold_instances) do 
-                v.TextColor3 = rgb(170, 170, 170)
+                if v then
+                    v.TextColor3 = rgb(170, 170, 170)
+                end
             end
 
             if cfg.hold_instances[path] then 
