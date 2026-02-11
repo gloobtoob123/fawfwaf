@@ -77,6 +77,7 @@ getgenv().library = {
     colorpicker_open = false; 
     gui; 
     sgui;
+    watermark_instance = nil; -- Store watermark reference
 }
 
 local themes = {
@@ -458,23 +459,39 @@ function library:update_theme(theme, color)
     themes.preset[theme] = color 
 end 
 
-function library:update_notification_color(color)
-    -- Update all existing notifications with new accent color
+function library:update_accent_color(color)
+    -- Update theme accent color
+    library:update_theme("accent", color)
+    
+    -- Update all toggle fills
+    local function find_and_update_toggles(instance)
+        if not instance then return end
+        
+        if instance.Name == "Fill" and instance.Parent and instance.Parent.Parent and instance.Parent.Parent:IsA("TextButton") then
+            if instance:FindFirstAncestorWhichIsA("ScreenGui") then
+                instance.BackgroundColor3 = color
+            end
+        end
+        
+        for _, child in ipairs(instance:GetChildren()) do
+            find_and_update_toggles(child)
+        end
+    end
+    
+    if library.gui then
+        find_and_update_toggles(library.gui)
+    end
+    
+    -- Update all notifications
     for _, notification in ipairs(library.notifications.notifs or {}) do
         if notification and notification.Parent then
-            -- Find the accent frame in the notification
-            local function find_accent(instance)
-                for _, child in ipairs(instance:GetDescendants()) do
-                    if child.Name == "Accent" and child:IsA("Frame") then
-                        child.BackgroundColor3 = color
-                    elseif child.Name == "Fill" and child:IsA("Frame") then
-                        -- Also update any toggle fills in notifications if they exist
-                        child.BackgroundColor3 = color
-                    end
-                end
-            end
-            find_accent(notification)
+            notification.BackgroundColor3 = color
         end
+    end
+    
+    -- Update watermark
+    if library.watermark_instance and library.watermark_instance.Parent then
+        library.watermark_instance.BackgroundColor3 = color
     end
 end
 
@@ -837,7 +854,12 @@ function library:watermark(options)
         BackgroundColor3 = themes.preset.accent,
         Name = "Watermark",
         ZIndex = 10
-    }); library.watermark_outline = outline; library:draggify(outline);
+    }); 
+    
+    library.watermark_instance = outline
+    library.watermark_outline = outline
+    
+    library:draggify(outline);
     
     local dark = library:create("Frame", {
         Parent = outline;
