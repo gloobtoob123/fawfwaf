@@ -936,6 +936,7 @@ function library:section(properties)
         autofill = properties.auto_fill or false,
         count = self.count;
         color = self.color;
+        elements = nil; -- Will hold the elements container
     }
 
     -- Instances
@@ -978,7 +979,7 @@ function library:section(properties)
             PaddingBottom = dim(0, 7)
         })
     else 
-        accent.Size = dim2(1, 0, cfg.size, 0);
+        accent.Size = dim2(1, 0, 0, cfg.size * 100); -- Fixed sizing
     end
     
     library:create("UIListLayout", {
@@ -993,12 +994,11 @@ function library:section(properties)
         BorderColor3 = rgb(0, 0, 0);
         Text = cfg.name;
         Parent = accent;
-        Size = dim2(1, 0, 0, 0);
+        Size = dim2(1, 0, 0, 14);
         Position = dim2(0, 4, 0, 1);
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Left;
         BorderSizePixel = 0;
-        AutomaticSize = Enum.AutomaticSize.Y;
         TextSize = 12;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -2015,7 +2015,7 @@ function library:colorpicker(options)
         BorderMode = Enum.BorderMode.Inset;
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 2, 0, 3);
-        Position = dim2(0, -1, 0, 0); -- FIXED: Position at top (Y = 0)
+        Position = dim2(0, -1, 0, 0);
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 1005
     });
@@ -2188,9 +2188,7 @@ function library:colorpicker(options)
         
         local Color = Color3.fromHSV(h, s, v)
         
-        -- FIXED: Hue picker position uses h directly (0 at top, 1 at bottom)
         hue_picker.Position = dim2(0, -1, h, -1)
-        
         alpha_picker.Position = dim2(1 - a, -1, 0, -1)
         saturation_value_picker.Position = dim2(s, -1, 1 - v, -1)
 
@@ -2218,7 +2216,6 @@ function library:colorpicker(options)
             s = math.clamp((offset - saturation_value_button.AbsolutePosition).X / saturation_value_button.AbsoluteSize.X, 0, 1)
             v = 1 - math.clamp((offset - saturation_value_button.AbsolutePosition).Y / saturation_value_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
-            -- FIXED: Hue is now 0 at top, 1 at bottom (no inversion)
             h = math.clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
             a = 1 - math.clamp((offset - alpha_button.AbsolutePosition).X / alpha_button.AbsoluteSize.X, 0, 1)
