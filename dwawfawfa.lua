@@ -1253,7 +1253,6 @@ function library:list(options)
     return setmetatable(cfg, library)
 end     
 
--- FIXED: Slider with ProggyClean font
 function library:slider(options) 
     local cfg = {
         name = options.name or nil,
@@ -1311,7 +1310,6 @@ function library:slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(accent, "accent", "BackgroundColor3")
     
-    -- FIXED: Use ProggyClean font explicitly
     local slider_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1377,7 +1375,6 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
--- FIXED: Multi Slider with ProggyClean font
 function library:multi_slider(options)
     local cfg = {
         name = options.name or nil,
@@ -1464,7 +1461,6 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
     
-    -- FIXED: Use ProggyClean font
     local left_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1521,7 +1517,6 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
     
-    -- FIXED: Use ProggyClean font
     local right_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1855,6 +1850,7 @@ function library:dropdown(options)
     return setmetatable(cfg, library)
 end 
 
+-- FIXED: Colorpicker with proper vertical hue bar
 function library:colorpicker(options) 
     local cfg = {
         name = options.name or "Color", 
@@ -1868,7 +1864,7 @@ function library:colorpicker(options)
     }
 
     -- Instances
-    -- Element
+    -- Element 
     local colorpicker_element = library:create("TextButton", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -2019,7 +2015,7 @@ function library:colorpicker(options)
         BorderMode = Enum.BorderMode.Inset;
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 2, 0, 3);
-        Position = dim2(0, -1, 0, -1);
+        Position = dim2(0, -1, 0, 0); -- FIXED: Position at top (Y = 0)
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 1005
     });
@@ -2187,12 +2183,14 @@ function library:colorpicker(options)
         end
         
         if alpha then 
-            a = alpha
+            a = alpha 
         end 
         
         local Color = Color3.fromHSV(h, s, v)
         
-        hue_picker.Position = dim2(0, -1, 1 - h, -1)
+        -- FIXED: Hue picker position uses h directly (0 at top, 1 at bottom)
+        hue_picker.Position = dim2(0, -1, h, -1)
+        
         alpha_picker.Position = dim2(1 - a, -1, 0, -1)
         saturation_value_picker.Position = dim2(s, -1, 1 - v, -1)
 
@@ -2220,7 +2218,8 @@ function library:colorpicker(options)
             s = math.clamp((offset - saturation_value_button.AbsolutePosition).X / saturation_value_button.AbsoluteSize.X, 0, 1)
             v = 1 - math.clamp((offset - saturation_value_button.AbsolutePosition).Y / saturation_value_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
-            h = 1 - math.clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
+            -- FIXED: Hue is now 0 at top, 1 at bottom (no inversion)
+            h = math.clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
             a = 1 - math.clamp((offset - alpha_button.AbsolutePosition).X / alpha_button.AbsoluteSize.X, 0, 1)
         end
@@ -2354,7 +2353,6 @@ function library:textbox(options)
     return setmetatable(cfg, library)
 end 
 
--- FIXED: Keybind with proper closing behavior and ProggyClean font
 function library:keybind(options) 
     local cfg = {
         flag = options.flag or options.name or "Flag",
@@ -2629,7 +2627,6 @@ function library:keybind(options)
         end
     end)
     
-    -- FIXED: Close when UI is moved
     library:connection(run.RenderStepped, function()
         if cfg.open and accent.Visible then
             if not (library:mouse_in_frame(keybind_holder) or library:mouse_in_frame(accent)) then
