@@ -78,6 +78,7 @@ getgenv().library = {
     gui; 
     sgui;
     watermark_instance = nil; -- Store watermark reference
+    current_open_element = nil; -- Track currently open dropdown/keybind
 }
 
 local themes = {
@@ -226,12 +227,13 @@ function library:tween(obj, properties)
     return tween
 end 
 
-function library:close_current_element(cfg) 
-    local path = library.current_element_open
-
-    if path then
-        path.set_visible(false)
-        path.open = false 
+function library:close_current_element() 
+    if library.current_open_element and library.current_open_element.set_visible then
+        library.current_open_element:set_visible(false)
+        if library.current_open_element.toggle_open then
+            library.current_open_element:toggle_open(false)
+        end
+        library.current_open_element = nil
     end
 end 
 
@@ -273,17 +275,9 @@ function library:resizify(frame)
 
             local current_size = dim2(
                 start_size.X.Scale,
-                math.clamp(
-                    start_size.X.Offset + (input.Position.X - start.X),
-                    og_size.X.Offset,
-                    viewport_x
-                ),
+                math.max(300, start_size.X.Offset + (input.Position.X - start.X)),
                 start_size.Y.Scale,
-                math.clamp(
-                    start_size.Y.Offset + (input.Position.Y - start.Y),
-                    og_size.Y.Offset,
-                    viewport_y
-                )
+                math.max(200, start_size.Y.Offset + (input.Position.Y - start.Y))
             )
             frame.Size = current_size
         end
@@ -291,6 +285,10 @@ function library:resizify(frame)
 end
 
 function library:mouse_in_frame(uiobject)
+    if not uiobject or not uiobject.AbsolutePosition or not uiobject.AbsoluteSize then
+        return false
+    end
+    
     local y_cond = uiobject.AbsolutePosition.Y <= mouse.Y and mouse.Y <= uiobject.AbsolutePosition.Y + uiobject.AbsoluteSize.Y
     local x_cond = uiobject.AbsolutePosition.X <= mouse.X and mouse.X <= uiobject.AbsolutePosition.X + uiobject.AbsoluteSize.X
 
@@ -324,22 +322,11 @@ function library:draggify(frame)
 
     library:connection(uis.InputChanged, function(input, game_event) 
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local viewport_x = camera.ViewportSize.X
-            local viewport_y = camera.ViewportSize.Y
-
             local current_position = dim2(
                 0,
-                clamp(
-                    start_size.X.Offset + (input.Position.X - start.X),
-                    0,
-                    viewport_x - frame.Size.X.Offset
-                ),
+                start_size.X.Offset + (input.Position.X - start.X),
                 0,
-                math.clamp(
-                    start_size.Y.Offset + (input.Position.Y - start.Y),
-                    0,
-                    viewport_y - frame.Size.Y.Offset
-                )
+                start_size.Y.Offset + (input.Position.Y - start.Y)
             )
 
             frame.Position = current_position
@@ -460,10 +447,8 @@ function library:update_theme(theme, color)
 end 
 
 function library:update_accent_color(color)
-    -- Update theme accent color
     library:update_theme("accent", color)
     
-    -- Update all toggle fills
     local function find_and_update_toggles(instance)
         if not instance then return end
         
@@ -482,14 +467,12 @@ function library:update_accent_color(color)
         find_and_update_toggles(library.gui)
     end
     
-    -- Update all notifications
     for _, notification in ipairs(library.notifications.notifs or {}) do
         if notification and notification.Parent then
             notification.BackgroundColor3 = color
         end
     end
     
-    -- Update watermark
     if library.watermark_instance and library.watermark_instance.Parent then
         library.watermark_instance.BackgroundColor3 = color
     end
@@ -521,8 +504,8 @@ function library:create(instance, options)
     end
     
     if instance == "TextLabel" or instance == "TextButton" or instance == "TextBox" then 	
-        -- Always use ProggyClean font
         ins.FontFace = fonts["ProggyClean"]
+        ins.TextSize = 12
         library:apply_theme(ins, "text", "TextColor3")
         library:apply_stroke(ins)
     end
@@ -693,14 +676,14 @@ function library:tab(properties)
         if selected_tab then 
             selected_tab[1].Visible = false 
             selected_tab[2].TextColor3 = rgb(170, 170, 170)
-
             selected_tab = nil 
         end
 
         Page.Visible = true
         tab_button.TextColor3 = rgb(255, 255, 255)
-
         self.selected_tab = {Page, tab_button}
+        
+        library:close_current_element()
     end
 
     tab_button.MouseButton1Down:Connect(function()
@@ -743,7 +726,6 @@ function notifications:fade(path, is_fading)
             if instance:IsA("UIStroke") then
                 tween_service:Create(instance, TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Transparency = fading}):Play()
             end
-
             continue
         end 
 
@@ -826,11 +808,8 @@ function notifications:create_notification(options)
         task.wait(3)
         
         notifications.notifs[index] = nil
-
         notifications:fade(outline, true)
-
         task.wait(1)
-
         outline:Destroy() 
         notifications:refresh_notifs()
     end)
@@ -1116,9 +1095,7 @@ function library:toggle(options)
     -- Functions
     function cfg.set(bool)                        
         fill.BackgroundColor3 = bool and themes.preset.accent or themes.preset.inline
-
         flags[cfg.flag] = bool
-
         cfg.callback(bool)
 
         if cfg.folding then 
@@ -1127,7 +1104,6 @@ function library:toggle(options)
     end 
 
     cfg.set(cfg.default)
-
     config_flags[cfg.flag] = cfg.set
 
     -- Connections
@@ -1234,7 +1210,6 @@ function library:list(options)
 
         for _, option in next, options do 
             local button = cfg.render_option(option) 
-
             insert(cfg.option_instances, button)
             
             button.MouseButton1Click:Connect(function()
@@ -1244,9 +1219,7 @@ function library:list(options)
 
                 cfg.current_instance = button
                 button.TextColor3 = rgb(255, 255, 255) 
-
                 flags[cfg.flag] = button.Text
-                
                 cfg.callback(button.Text)
             end)
         end 
@@ -1280,7 +1253,7 @@ function library:list(options)
     return setmetatable(cfg, library)
 end     
 
--- MODIFIED: Slider with text inside and no title - HALF SIZE
+-- FIXED: Slider with ProggyClean font
 function library:slider(options) 
     local cfg = {
         name = options.name or nil,
@@ -1299,12 +1272,12 @@ function library:slider(options)
         dragging = false,
     } 
 
-    -- Instances - HALF SIZE (was 25, now 12)
+    -- Instances
     local slider = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
+        Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1315,9 +1288,10 @@ function library:slider(options)
         AutoButtonColor = false;
         Position = dim2(0, 0, 0, 0);
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
+        Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(outline, "inline", "BackgroundColor3")
     
     local inline = library:create("Frame", {
@@ -1337,7 +1311,7 @@ function library:slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(accent, "accent", "BackgroundColor3")
     
-    -- Text inside the slider - SMALLER TEXT SIZE
+    -- FIXED: Use ProggyClean font explicitly
     local slider_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1350,7 +1324,7 @@ function library:slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 10; -- Changed from 12 to 10 (smaller)
+        TextSize = 10;
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
@@ -1364,10 +1338,8 @@ function library:slider(options)
         end 
 
         cfg.value = clamp(library:round(valuee, cfg.intervals), cfg.min, cfg.max)
-
         accent.Size = dim2((cfg.value - cfg.min) / (cfg.max - cfg.min), 0, 1, 0)
         
-        -- Set text based on display_text
         if cfg.display_text and cfg.display_text ~= "" then
             slider_text.Text = cfg.display_text .. ": " .. tostring(cfg.value) .. cfg.suffix
         else
@@ -1375,7 +1347,6 @@ function library:slider(options)
         end
         
         flags[cfg.flag] = cfg.value
-
         cfg.callback(flags[cfg.flag])
     end 
 
@@ -1390,7 +1361,6 @@ function library:slider(options)
         if cfg.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then 
             local size_x = (input.Position.X - inline.AbsolutePosition.X) / inline.AbsoluteSize.X
             local value = ((cfg.max - cfg.min) * size_x) + cfg.min
-            
             cfg.set(value)
         end
     end)
@@ -1402,13 +1372,12 @@ function library:slider(options)
     end)
 
     cfg.set(cfg.default)
-
     config_flags[cfg.flag] = cfg.set
 
     return setmetatable(cfg, library)
 end 
 
--- MODIFIED: Multi Slider with text inside and no title - HALF SIZE
+-- FIXED: Multi Slider with ProggyClean font
 function library:multi_slider(options)
     local cfg = {
         name = options.name or nil,
@@ -1436,12 +1405,12 @@ function library:multi_slider(options)
         callback = options.callback or function(left_val, right_val) end,
     }
 
-    -- Main container - HALF SIZE (was 25, now 12)
+    -- Main container
     local container = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
+        Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1474,7 +1443,8 @@ function library:multi_slider(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 1, 0);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(left_outline, "inline", "BackgroundColor3")
 
     local left_inline = library:create("Frame", {
@@ -1494,7 +1464,7 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
     
-    -- Left slider text inside - SMALLER TEXT SIZE
+    -- FIXED: Use ProggyClean font
     local left_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1507,7 +1477,7 @@ function library:multi_slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 10; -- Changed from 12 to 10 (smaller)
+        TextSize = 10;
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
@@ -1530,7 +1500,8 @@ function library:multi_slider(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 1, 0);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(right_outline, "inline", "BackgroundColor3")
 
     local right_inline = library:create("Frame", {
@@ -1550,7 +1521,7 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
     
-    -- Right slider text inside - SMALLER TEXT SIZE
+    -- FIXED: Use ProggyClean font
     local right_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1563,7 +1534,7 @@ function library:multi_slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 10; -- Changed from 12 to 10 (smaller)
+        TextSize = 10;
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
@@ -1580,10 +1551,8 @@ function library:multi_slider(options)
         if valuee == nil then return end
 
         cfg.left_value = clamp(library:round(valuee, cfg.left_intervals), cfg.left_min, cfg.left_max)
-        
         left_accent.Size = dim2((cfg.left_value - cfg.left_min) / (cfg.left_max - cfg.left_min), 0, 1, 0)
         
-        -- Set text based on left_display_text
         if cfg.left_display_text and cfg.left_display_text ~= "" then
             left_text.Text = cfg.left_display_text .. ": " .. tostring(cfg.left_value) .. cfg.left_suffix
         else
@@ -1600,10 +1569,8 @@ function library:multi_slider(options)
         if valuee == nil then return end
 
         cfg.right_value = clamp(library:round(valuee, cfg.right_intervals), cfg.right_min, cfg.right_max)
-        
         right_accent.Size = dim2((cfg.right_value - cfg.right_min) / (cfg.right_max - cfg.right_min), 0, 1, 0)
         
-        -- Set text based on right_display_text
         if cfg.right_display_text and cfg.right_display_text ~= "" then
             right_text.Text = cfg.right_display_text .. ": " .. tostring(cfg.right_value) .. cfg.right_suffix
         else
@@ -1668,7 +1635,6 @@ function library:dropdown(options)
         multi = options.multi or false, 
         scrolling = options.scrolling or false, 
 
-        -- Ignore these 
         open = false, 
         option_instances = {}, 
         multi_items = {}, 
@@ -1699,7 +1665,8 @@ function library:dropdown(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(0.5, 0, 0, 16);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(dropdown_holder, "inline", "BackgroundColor3")
     
     local inline = library:create("Frame", {
@@ -1805,6 +1772,19 @@ function library:dropdown(options)
     
     function cfg.set_visible(bool) 
         accent.Visible = bool
+        if bool then
+            accent.Position = dim2(0, dropdown_holder.AbsolutePosition.X, 0, dropdown_holder.AbsolutePosition.Y + 20)
+            accent.ZIndex = 1000
+            library.current_open_element = cfg
+        else
+            if library.current_open_element == cfg then
+                library.current_open_element = nil
+            end
+        end
+    end
+    
+    function cfg:toggle_open(bool)
+        cfg.open = bool
     end
     
     function cfg.set(value)
@@ -1826,9 +1806,7 @@ function library:dropdown(options)
         end
 
         text.Text = isTable and concat(selected, ", ") or selected[1] or "None"
-
         flags[cfg.flag] = isTable and selected or selected[1]
-        
         cfg.callback(flags[cfg.flag]) 
     end
     
@@ -1841,7 +1819,6 @@ function library:dropdown(options)
 
         for _, option in next, list do 
             local button = cfg.render_option(option)
-
             insert(cfg.option_instances, button)
             
             button.MouseButton1Down:Connect(function()
@@ -1858,7 +1835,6 @@ function library:dropdown(options)
                 else 
                     cfg.set_visible(false)
                     cfg.open = false 
-                    
                     cfg.set(button.Text)
                 end
             end)
@@ -1866,29 +1842,14 @@ function library:dropdown(options)
     end
 
     cfg.refresh_options(cfg.items)
-
     cfg.set(cfg.default)
-
     config_flags[cfg.flag] = cfg.set
 
     -- Connections 
     dropdown_holder.MouseButton1Click:Connect(function()
+        library:close_current_element()
         cfg.open = not cfg.open 
-        
-        accent.Size = dim2(0, dropdown_holder.AbsoluteSize.X, 0, accent.Size.Y.Offset)
-        accent.Position = dim2(0, dropdown_holder.AbsolutePosition.X, 0, dropdown_holder.AbsolutePosition.Y + 20)
-        accent.ZIndex = 1000
-        
         cfg.set_visible(cfg.open)
-    end)
-
-    uis.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if not (library:mouse_in_frame(accent) or library:mouse_in_frame(dropdown)) then 
-                cfg.open = false
-                cfg.set_visible(false)
-            end
-        end
     end)
 
     return setmetatable(cfg, library)
@@ -1916,7 +1877,8 @@ function library:colorpicker(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
-        BackgroundColor3 = rgb(255, 255, 255)
+        BackgroundColor3 = rgb(255, 255, 255),
+        FontFace = fonts["ProggyClean"]
     });
     
     local accent = library:create("Frame", {
@@ -2032,7 +1994,8 @@ function library:colorpicker(options)
         Size = dim2(0, 14, 1, -60);
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline,
-        ZIndex = 1003
+        ZIndex = 1003,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(hue_button, "inline", "BackgroundColor3")
     
     local hue_drag = library:create("Frame", {
@@ -2071,7 +2034,8 @@ function library:colorpicker(options)
         Size = dim2(1, -1, 0, 14);
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline,
-        ZIndex = 1003
+        ZIndex = 1003,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(alpha_button, "inline", "BackgroundColor3")
     
     local alpha_color = library:create("Frame", {
@@ -2120,7 +2084,8 @@ function library:colorpicker(options)
         AutoButtonColor = false;
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline,
-        ZIndex = 1003
+        ZIndex = 1003,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(saturation_value_button, "inline", "BackgroundColor3")
     
     local colorpicker_color = library:create("Frame", {
@@ -2141,7 +2106,8 @@ function library:colorpicker(options)
         Size = dim2(1, 0, 1, 0);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255),
-        ZIndex = 1005
+        ZIndex = 1005,
+        FontFace = fonts["ProggyClean"]
     });
     
     library:create("UIGradient", {
@@ -2176,7 +2142,8 @@ function library:colorpicker(options)
         BorderColor3 = rgb(0, 0, 0);
         ZIndex = 1005;
         BorderSizePixel = 0;
-        BackgroundColor3 = rgb(255, 255, 255)
+        BackgroundColor3 = rgb(255, 255, 255),
+        FontFace = fonts["ProggyClean"]
     });
     
     library:create("UIGradient", {
@@ -2198,9 +2165,20 @@ function library:colorpicker(options)
 
     function cfg.set_visible(bool) 
         colorpicker.Visible = bool
-        
         colorpicker.Position = dim_offset(colorpicker_element_color.AbsolutePosition.X - 1, colorpicker_element_color.AbsolutePosition.Y + colorpicker_element_color.AbsoluteSize.Y + 65)
         colorpicker.ZIndex = 1000
+        
+        if bool then
+            library.current_open_element = cfg
+        else
+            if library.current_open_element == cfg then
+                library.current_open_element = nil
+            end
+        end
+    end
+    
+    function cfg:toggle_open(bool)
+        cfg.open = bool
     end
 
     function cfg.set(color, alpha)
@@ -2251,11 +2229,11 @@ function library:colorpicker(options)
     end
 
     cfg.set(cfg.color, cfg.alpha)
-    
     config_flags[cfg.flag] = cfg.set
 
     -- Connections 
     colorpicker_element.MouseButton1Click:Connect(function()
+        library:close_current_element()
         cfg.open = not cfg.open 
         cfg.set_visible(cfg.open)            
     end)
@@ -2322,7 +2300,8 @@ function library:textbox(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 0, 16);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(frame, "inline", "BackgroundColor3")
     
     local frame_inline = library:create("Frame", {
@@ -2375,7 +2354,7 @@ function library:textbox(options)
     return setmetatable(cfg, library)
 end 
 
--- FIXED: Keybind with proper box sizing for mode options
+-- FIXED: Keybind with proper closing behavior and ProggyClean font
 function library:keybind(options) 
     local cfg = {
         flag = options.flag or options.name or "Flag",
@@ -2439,11 +2418,11 @@ function library:keybind(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
-    -- Holder - Fixed to properly size to content
+    -- Holder - Fixed sizing
     local accent = library:create("Frame", {
         Parent = library.gui;
         Visible = false;
-        Size = dim2(0, 0, 0, 0); -- Will auto size
+        Size = dim2(0, 0, 0, 0);
         Position = dim2(0, 500, 0, 100);
         BorderColor3 = rgb(0, 0, 0);
         BorderSizePixel = 0;
@@ -2582,11 +2561,21 @@ function library:keybind(options)
         if bool then
             accent.Position = dim2(0, keybind_holder.AbsolutePosition.X, 0, keybind_holder.AbsolutePosition.Y + 20)
             accent.ZIndex = 1000
+            library.current_open_element = cfg
+        else
+            if library.current_open_element == cfg then
+                library.current_open_element = nil
+            end
         end
+    end
+    
+    function cfg:toggle_open(bool)
+        cfg.open = bool
     end
 
     -- Connections
     keybind_holder.MouseButton1Down:Connect(function()
+        library:close_current_element()
         task.wait()
         text.Text = "[...]"	
 
@@ -2600,6 +2589,7 @@ function library:keybind(options)
     end)
 
     keybind_holder.MouseButton2Down:Connect(function()
+        library:close_current_element()
         cfg.open = not cfg.open 
         cfg.set_visible(cfg.open) 
     end)
@@ -2631,7 +2621,18 @@ function library:keybind(options)
         end
 
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            task.wait()
             if not (library:mouse_in_frame(keybind_holder) or library:mouse_in_frame(accent)) then 
+                cfg.open = false
+                cfg.set_visible(false)
+            end
+        end
+    end)
+    
+    -- FIXED: Close when UI is moved
+    library:connection(run.RenderStepped, function()
+        if cfg.open and accent.Visible then
+            if not (library:mouse_in_frame(keybind_holder) or library:mouse_in_frame(accent)) then
                 cfg.open = false
                 cfg.set_visible(false)
             end
@@ -2660,7 +2661,8 @@ function library:button(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 0, 16);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline
+        BackgroundColor3 = themes.preset.inline,
+        FontFace = fonts["ProggyClean"]
     }); library:apply_theme(frame, "inline", "BackgroundColor3")
     
     local frame_inline = library:create("Frame", {
@@ -2694,5 +2696,20 @@ function library:button(options)
     
     return setmetatable(cfg, library)
 end 
+
+-- Global click handler to close open elements
+library:connection(uis.InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        task.wait()
+        if library.current_open_element and not (
+            library:mouse_in_frame(library.current_open_element.keybind_holder) or 
+            library:mouse_in_frame(library.current_open_element.accent) or
+            library:mouse_in_frame(library.current_open_element.colorpicker_element) or
+            library:mouse_in_frame(library.current_open_element.colorpicker)
+        ) then
+            library:close_current_element()
+        end
+    end
+end)
 
 return library, notifications
