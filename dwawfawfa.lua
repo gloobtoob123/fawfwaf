@@ -1,3 +1,4 @@
+-- Variables 
 local uis = game:GetService("UserInputService") 
 local players = game:GetService("Players") 
 local ws = game:GetService("Workspace")
@@ -55,6 +56,7 @@ local insert = table.insert
 local find = table.find 
 local remove = table.remove
 local concat = table.concat
+-- 
 
 -- Library init
 getgenv().library = {
@@ -75,8 +77,8 @@ getgenv().library = {
     colorpicker_open = false; 
     gui; 
     sgui;
-    watermark_instance = nil;
-    current_open_element = nil;
+    watermark_instance = nil; -- Store watermark reference
+    current_open_element = nil; -- Track currently open dropdown/keybind
 }
 
 local themes = {
@@ -215,10 +217,13 @@ local fonts = {}; do
         ["ProggyClean"] = Font.new(ProggyClean, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     }
 end
+-- 
 
 -- Library functions 
+-- Misc functions
 function library:tween(obj, properties) 
     local tween = tween_service:Create(obj, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 0, false, 0), properties):Play()
+        
     return tween
 end 
 
@@ -292,6 +297,7 @@ end
 
 library.lerp = function(start, finish, t)
     t = t or 1 / 8
+
     return start * (1 - t) + finish * t
 end
 
@@ -352,6 +358,7 @@ function library:convert_enum(enum)
     local enum_table = Enum
     for i = 2, #enum_parts do
         local enum_item = enum_table[enum_parts[i]]
+
         enum_table = enum_item
     end
 
@@ -371,6 +378,7 @@ function library:update_config_list()
         list[#list + 1] = name
     end
     
+
     config_holder.refresh_options(list)
 end 
 
@@ -414,6 +422,7 @@ end
 
 function library:round(number, float) 
     local multiplier = 1 / (float or 1)
+
     return floor(number * multiplier + 0.5) / multiplier
 end 
 
@@ -471,7 +480,9 @@ end
 
 function library:connection(signal, callback)
     local connection = signal:Connect(callback)
+    
     insert(library.connections, connection)
+
     return connection 
 end
 
@@ -518,8 +529,9 @@ function library:unload_menu()
     
     library = nil 
 end 
+--
 
--- Window functions
+-- Library element functions
 function library:window(properties)
     local cfg = {
         name = properties.name or properties.Name or "priv9",
@@ -535,6 +547,7 @@ function library:window(properties)
         IgnoreGuiInset = true,
     })
 
+    -- Window
     local window_outline = library:create("Frame", {
         Parent = library.gui;
         Position = dim2(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2);
@@ -613,6 +626,8 @@ function library:tab(properties)
         count = 0
     }
 
+    -- Instances 
+    -- Tab Button
     local tab_button = library:create("TextButton", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(170, 170, 170);
@@ -626,6 +641,7 @@ function library:tab(properties)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Page
     local Page = library:create("Frame", {
         Parent = self.main_outline;
         BackgroundTransparency = 0.6;
@@ -681,7 +697,6 @@ function library:tab(properties)
     return setmetatable(cfg, library)    
 end 
 
--- Notification System
 local notifications = {notifs = {}} 
 library.notifications = notifications
 
@@ -732,6 +747,7 @@ function notifications:create_notification(options)
         name = options.name or "Notification",
     }
 
+    -- Instances
     local outline = library:create("Frame", {
         Parent = library.sgui;
         Position = dim_offset(-50, 50 + (#notifications.notifs * 30));
@@ -790,6 +806,7 @@ function notifications:create_notification(options)
 
     task.spawn(function()
         task.wait(3)
+        
         notifications.notifs[index] = nil
         notifications:fade(outline, true)
         task.wait(1)
@@ -800,12 +817,12 @@ function notifications:create_notification(options)
     return outline
 end
 
--- Watermark
 function library:watermark(options)
     local cfg = {
         name = options.name or "nebulahax";
     }
     
+    -- Instances
     local outline = library:create("Frame", {
         Parent = library.sgui;
         Position = dim2(0, 50, 0, 50); 
@@ -819,6 +836,8 @@ function library:watermark(options)
     }); 
     
     library.watermark_instance = outline
+    library.watermark_outline = outline
+    
     library:draggify(outline);
     
     local dark = library:create("Frame", {
@@ -866,6 +885,21 @@ function library:watermark(options)
     return setmetatable(cfg, library)
 end 
 
+local watermark = library:watermark({name = "priv9 - 0 fps - 0 ping"})
+local fps = 0
+local watermark_delay = tick() 
+
+run.RenderStepped:Connect(function()
+    fps = fps + 1
+
+    if tick() - watermark_delay > 1 then 
+        watermark_delay = tick()
+        local ping = math.floor(stats.PerformanceStats.Ping:GetValue() or 0) .. "ms"                
+        watermark.update_text(string.format("priv9 - fps: %s - ping: %s", fps, ping))
+        fps = 0
+    end
+end)
+
 function library:column(properties)
     self.count = (self.count or 0) + 1
 
@@ -904,6 +938,7 @@ function library:section(properties)
         color = self.color;
     }
 
+    -- Instances
     local accent = library:create("Frame", {
         Parent = self.column;
         ClipsDescendants = true;
@@ -971,7 +1006,7 @@ function library:section(properties)
     return setmetatable(cfg, library)
 end 
 
--- Toggle Element
+-- Elements  
 function library:toggle(options) 
     local cfg = {
         enabled = options.enabled or nil,
@@ -986,6 +1021,8 @@ function library:toggle(options)
         count = self.count;
     }
 
+    -- Instances
+    -- Element
     local toggle = library:create("TextButton", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1032,6 +1069,7 @@ function library:toggle(options)
         Name = "Fill"
     });                
     
+    -- Sub sections
     local elements;
 
     if cfg.folding then
@@ -1054,6 +1092,7 @@ function library:toggle(options)
         });                            
     end 
     
+    -- Functions
     function cfg.set(bool)                        
         fill.BackgroundColor3 = bool and themes.preset.accent or themes.preset.inline
         flags[cfg.flag] = bool
@@ -1067,6 +1106,7 @@ function library:toggle(options)
     cfg.set(cfg.default)
     config_flags[cfg.flag] = cfg.set
 
+    -- Connections
     toggle.MouseButton1Click:Connect(function()
         cfg.enabled = not cfg.enabled 
         cfg.set(cfg.enabled)
@@ -1075,19 +1115,21 @@ function library:toggle(options)
     return setmetatable(cfg, library)
 end 
 
--- List Element
 function library:list(options)
     local cfg = {
         callback = options and options.callback or function() end, 
         name = options.name or nil, 
+
         scale = options.size or 90, 
         items = options.items or {"1", "2", "3"}, 
         visible = options.visible or true,
+
         option_instances = {}, 
         current_instance = nil, 
         flag = options.flag or "SET A FLAG", 
     }
 
+    -- Elements
     local accent = library:create("Frame", {
         BorderColor3 = rgb(0, 0, 0);
         AnchorPoint = vec2(1, 0);
@@ -1138,6 +1180,7 @@ function library:list(options)
         PaddingLeft = dim(0, 5)
     });
 
+    -- Functions
     function cfg.render_option(text) 
         local text = library:create("TextButton", {
             FontFace = fonts["ProggyClean"];
@@ -1210,7 +1253,6 @@ function library:list(options)
     return setmetatable(cfg, library)
 end     
 
--- Slider Element
 function library:slider(options) 
     local cfg = {
         name = options.name or nil,
@@ -1229,6 +1271,7 @@ function library:slider(options)
         dragging = false,
     } 
 
+    -- Instances
     local slider = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1284,6 +1327,7 @@ function library:slider(options)
         ZIndex = 2
     });
     
+    -- Functions 
     function cfg.set(value)
         local valuee = tonumber(value)
 
@@ -1306,6 +1350,7 @@ function library:slider(options)
 
     cfg.set(cfg.default)
 
+    -- Connections
     outline.MouseButton1Down:Connect(function()
         cfg.dragging = true 
     end)
@@ -1330,11 +1375,11 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
--- Multi Slider Element
 function library:multi_slider(options)
     local cfg = {
         name = options.name or nil,
         
+        -- Left slider options
         left_name = options.left_name or "Left",
         left_min = options.left_min or 0,
         left_max = options.left_max or 100,
@@ -1344,6 +1389,7 @@ function library:multi_slider(options)
         left_intervals = options.left_interval or 1,
         left_display_text = options.left_display_text or options.left_name or "",
         
+        -- Right slider options
         right_name = options.right_name or "Right",
         right_min = options.right_min or 0,
         right_max = options.right_max or 100,
@@ -1356,6 +1402,7 @@ function library:multi_slider(options)
         callback = options.callback or function(left_val, right_val) end,
     }
 
+    -- Main container
     local container = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1365,6 +1412,7 @@ function library:multi_slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Create horizontal layout for two sliders
     local slider_row = library:create("Frame", {
         Parent = container;
         BackgroundTransparency = 1;
@@ -1374,6 +1422,7 @@ function library:multi_slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Left slider container (50% width)
     local left_container = library:create("Frame", {
         Parent = slider_row;
         BackgroundTransparency = 1;
@@ -1429,6 +1478,7 @@ function library:multi_slider(options)
         ZIndex = 2
     });
 
+    -- Right slider container (50% width)
     local right_container = library:create("Frame", {
         Parent = slider_row;
         BackgroundTransparency = 1;
@@ -1484,11 +1534,13 @@ function library:multi_slider(options)
         ZIndex = 2
     });
 
+    -- Slider state
     cfg.left_value = cfg.left_default
     cfg.right_value = cfg.right_default
     cfg.left_dragging = false
     cfg.right_dragging = false
 
+    -- Left slider functions
     function cfg.set_left(value)
         local valuee = tonumber(value)
         if valuee == nil then return end
@@ -1506,6 +1558,7 @@ function library:multi_slider(options)
         cfg.callback(cfg.left_value, cfg.right_value)
     end
 
+    -- Right slider functions
     function cfg.set_right(value)
         local valuee = tonumber(value)
         if valuee == nil then return end
@@ -1523,20 +1576,25 @@ function library:multi_slider(options)
         cfg.callback(cfg.left_value, cfg.right_value)
     end
 
+    -- Set default values
     cfg.set_left(cfg.left_default)
     cfg.set_right(cfg.right_default)
 
+    -- Config flags
     config_flags[cfg.left_flag] = cfg.set_left
     config_flags[cfg.right_flag] = cfg.set_right
 
+    -- Connections for left slider
     left_outline.MouseButton1Down:Connect(function()
         cfg.left_dragging = true
     end)
 
+    -- Connections for right slider
     right_outline.MouseButton1Down:Connect(function()
         cfg.right_dragging = true
     end)
 
+    -- Mouse movement for both sliders
     library:connection(uis.InputChanged, function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             if cfg.left_dragging then
@@ -1552,6 +1610,7 @@ function library:multi_slider(options)
         end
     end)
 
+    -- Mouse release for both sliders
     library:connection(uis.InputEnded, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             cfg.left_dragging = false
@@ -1562,7 +1621,6 @@ function library:multi_slider(options)
     return setmetatable(cfg, library)
 end
 
--- Dropdown Element
 function library:dropdown(options) 
     local cfg = {
         name = options.name or nil,
@@ -1582,6 +1640,8 @@ function library:dropdown(options)
 
     flags[cfg.flag] = {} 
 
+    -- Instances
+    -- Element 
     local dropdown = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1644,6 +1704,7 @@ function library:dropdown(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Holder
     local accent = library:create("Frame", {
         Parent = library.gui;
         Size = dim2(0, 100, 0, 20);
@@ -1681,6 +1742,7 @@ function library:dropdown(options)
         PaddingLeft = dim(0, 6)
     });
 
+    -- Functions
     function cfg.render_option(text) 
         local title = library:create("TextButton", {
             FontFace = fonts["ProggyClean"];
@@ -1778,6 +1840,7 @@ function library:dropdown(options)
     cfg.set(cfg.default)
     config_flags[cfg.flag] = cfg.set
 
+    -- Connections 
     dropdown_holder.MouseButton1Click:Connect(function()
         library:close_current_element()
         cfg.open = not cfg.open 
@@ -1787,7 +1850,7 @@ function library:dropdown(options)
     return setmetatable(cfg, library)
 end 
 
--- Colorpicker Element
+-- FIXED: Colorpicker with proper vertical hue bar
 function library:colorpicker(options) 
     local cfg = {
         name = options.name or "Color", 
@@ -1800,6 +1863,8 @@ function library:colorpicker(options)
         callback = options.callback or function() end,
     }
 
+    -- Instances
+    -- Element 
     local colorpicker_element = library:create("TextButton", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1847,6 +1912,7 @@ function library:colorpicker(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
     
+    -- Elements
     local colorpicker = library:create("Frame", {
         Parent = library.gui;
         Position = dim2(0.6888179183006287, 0, 0.24751244485378265, 0);
@@ -1949,7 +2015,7 @@ function library:colorpicker(options)
         BorderMode = Enum.BorderMode.Inset;
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 2, 0, 3);
-        Position = dim2(0, -1, 0, 0);
+        Position = dim2(0, -1, 0, 0); -- FIXED: Position at top (Y = 0)
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 1005
     });
@@ -2045,25 +2111,6 @@ function library:colorpicker(options)
         Transparency = numseq{numkey(0, 0), numkey(1, 1)}
     });
     
-    local saturation = library:create("TextButton", {
-        Parent = colorpicker_color;
-        Text = "";
-        AutoButtonColor = false;
-        Size = dim2(1, 0, 1, 0);
-        BorderColor3 = rgb(0, 0, 0);
-        ZIndex = 1005;
-        BorderSizePixel = 0;
-        BackgroundColor3 = rgb(255, 255, 255),
-        FontFace = fonts["ProggyClean"]
-    });
-    
-    library:create("UIGradient", {
-        Rotation = 270;
-        Transparency = numseq{numkey(0, 0), numkey(1, 1)};
-        Parent = saturation;
-        Color = rgbseq{rgbkey(0, rgb(0, 0, 0)), rgbkey(1, rgb(0, 0, 0))}
-    });
-    
     local saturation_value_picker = library:create("Frame", {
         Parent = colorpicker_color;
         BorderColor3 = rgb(0, 0, 0);
@@ -2083,6 +2130,26 @@ function library:colorpicker(options)
         ZIndex = 1007
     });
     
+    local saturation_button = library:create("TextButton", {
+        Parent = colorpicker_color;
+        Text = "";
+        AutoButtonColor = false;
+        Size = dim2(1, 0, 1, 0);
+        BorderColor3 = rgb(0, 0, 0);
+        ZIndex = 1005;
+        BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255),
+        FontFace = fonts["ProggyClean"]
+    });
+    
+    library:create("UIGradient", {
+        Rotation = 270;
+        Transparency = numseq{numkey(0, 0), numkey(1, 1)};
+        Parent = saturation_button;
+        Color = rgbseq{rgbkey(0, rgb(0, 0, 0)), rgbkey(1, rgb(0, 0, 0))}
+    });
+    
+    -- Functions 
     local dragging_sat = false 
     local dragging_hue = false 
     local dragging_alpha = false 
@@ -2121,7 +2188,9 @@ function library:colorpicker(options)
         
         local Color = Color3.fromHSV(h, s, v)
         
+        -- FIXED: Hue picker position uses h directly (0 at top, 1 at bottom)
         hue_picker.Position = dim2(0, -1, h, -1)
+        
         alpha_picker.Position = dim2(1 - a, -1, 0, -1)
         saturation_value_picker.Position = dim2(s, -1, 1 - v, -1)
 
@@ -2149,6 +2218,7 @@ function library:colorpicker(options)
             s = math.clamp((offset - saturation_value_button.AbsolutePosition).X / saturation_value_button.AbsoluteSize.X, 0, 1)
             v = 1 - math.clamp((offset - saturation_value_button.AbsolutePosition).Y / saturation_value_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
+            -- FIXED: Hue is now 0 at top, 1 at bottom (no inversion)
             h = math.clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
             a = 1 - math.clamp((offset - alpha_button.AbsolutePosition).X / alpha_button.AbsoluteSize.X, 0, 1)
@@ -2160,6 +2230,7 @@ function library:colorpicker(options)
     cfg.set(cfg.color, cfg.alpha)
     config_flags[cfg.flag] = cfg.set
 
+    -- Connections 
     colorpicker_element.MouseButton1Click:Connect(function()
         library:close_current_element()
         cfg.open = not cfg.open 
@@ -2193,7 +2264,7 @@ function library:colorpicker(options)
         dragging_hue = true 
     end)
     
-    saturation.MouseButton1Down:Connect(function()
+    saturation_button.MouseButton1Down:Connect(function()
         dragging_sat = true  
     end)
     
@@ -2208,7 +2279,6 @@ function library:colorpicker(options)
     return setmetatable(cfg, library)
 end
 
--- Textbox Element
 function library:textbox(options) 
     local cfg = {
         name = options.name or "...",
@@ -2219,6 +2289,7 @@ function library:textbox(options)
         visible = options.visible or true,
     }
     
+    -- Instances 
     local frame = library:create("TextButton", {
         AnchorPoint = vec2(1, 0);
         Text = "";
@@ -2261,6 +2332,7 @@ function library:textbox(options)
         PlaceholderText = cfg.placeholder
     })
     
+    -- Functions
     function cfg.set(text) 
         flags[cfg.flag] = text
         input.Text = text
@@ -2273,6 +2345,7 @@ function library:textbox(options)
         cfg.set(cfg.default) 
     end
 
+    -- Connections 
     input:GetPropertyChangedSignal("Text"):Connect(function()
         cfg.set(input.Text) 
     end)
@@ -2280,7 +2353,6 @@ function library:textbox(options)
     return setmetatable(cfg, library)
 end 
 
--- Keybind Element
 function library:keybind(options) 
     local cfg = {
         flag = options.flag or options.name or "Flag",
@@ -2299,6 +2371,8 @@ function library:keybind(options)
 
     flags[cfg.flag] = {} 
 
+    -- Instances
+    -- Element 
     local keybind = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -2322,7 +2396,7 @@ function library:keybind(options)
         TextSize = 12;
         BackgroundTransparency = 1;
         BackgroundColor3 = rgb(255, 255, 255)
-    }); cfg.keybind_holder = keybind_holder
+    });
     
     local text = keybind_holder;
     
@@ -2342,6 +2416,7 @@ function library:keybind(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Holder - Fixed sizing
     local accent = library:create("Frame", {
         Parent = library.gui;
         Visible = false;
@@ -2352,7 +2427,7 @@ function library:keybind(options)
         AutomaticSize = Enum.AutomaticSize.XY;
         BackgroundColor3 = themes.preset.inline,
         ZIndex = 1000
-    }); library:apply_theme(accent, "inline", "BackgroundColor3"); cfg.accent = accent
+    }); library:apply_theme(accent, "inline", "BackgroundColor3")
 
     local inline = library:create("Frame", {
         Parent = accent;
@@ -2407,6 +2482,7 @@ function library:keybind(options)
         end)
     end
 
+    -- Functions 
     function cfg.modify_mode_color(path)
         for _, v in pairs(cfg.hold_instances) do 
             v.TextColor3 = rgb(170, 170, 170)
@@ -2495,6 +2571,7 @@ function library:keybind(options)
         cfg.open = bool
     end
 
+    -- Connections
     keybind_holder.MouseButton1Down:Connect(function()
         library:close_current_element()
         task.wait()
@@ -2565,13 +2642,13 @@ function library:keybind(options)
     return setmetatable(cfg, library)
 end
 
--- Button Element
 function library:button(options) 
     local cfg = {
         name = options.name or "button",
         callback = options.callback or function() end,
     }
     
+    -- Instances 
     local frame = library:create("TextButton", {
         AnchorPoint = vec2(1, 0);
         Text = "";
@@ -2609,6 +2686,7 @@ function library:button(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Connections 
     frame.MouseButton1Click:Connect(function()
         cfg.callback()
     end)
@@ -2616,402 +2694,7 @@ function library:button(options)
     return setmetatable(cfg, library)
 end 
 
--- ViewModel Element - Customizable Character Viewer
-function library:viewmodel(options)
-    local cfg = {
-        name = options.name or "Character Viewer",
-        flag = options.flag or "viewmodel",
-        spin_speed = options.spin_speed or 0.3,
-        spin_enabled = options.spin_enabled ~= false,
-        background_color = options.background_color or Color3.fromRGB(25, 25, 25),
-        accent_color = options.accent_color or Color3.fromRGB(0, 170, 255),
-        show_controls = options.show_controls or false,
-        size = options.size or dim2(1, -8, 0, 180),
-        callback = options.callback or function() end,
-    }
-
-    -- Main container frame
-    local container = library:create("Frame", {
-        Parent = self.elements;
-        BackgroundTransparency = 1;
-        BorderColor3 = rgb(0, 0, 0);
-        Size = cfg.size;
-        BorderSizePixel = 0;
-        BackgroundColor3 = rgb(255, 255, 255),
-        ClipsDescendants = true
-    });
-
-    -- Background frame with accent border
-    local background = library:create("Frame", {
-        Parent = container;
-        Position = dim2(0, 0, 0, 0);
-        Size = dim2(1, 0, 1, 0);
-        BorderColor3 = rgb(0, 0, 0);
-        BorderSizePixel = 0;
-        BackgroundColor3 = cfg.background_color,
-    });
-
-    local corner = library:create("UICorner", {
-        CornerRadius = UDim.new(0, 6);
-        Parent = background
-    });
-
-    local stroke = library:create("UIStroke", {
-        Color = cfg.accent_color,
-        Thickness = 1.5,
-        Transparency = 0.5,
-        Parent = background
-    });
-
-    -- Title bar
-    local title_bar = library:create("Frame", {
-        Parent = background;
-        Size = dim2(1, 0, 0, 24);
-        Position = dim2(0, 0, 0, 0);
-        BackgroundColor3 = Color3.fromRGB(35, 35, 35);
-        BorderSizePixel = 0;
-    });
-
-    local title_corner = library:create("UICorner", {
-        CornerRadius = UDim.new(0, 6);
-        Parent = title_bar
-    });
-
-    -- Fix top corners
-    local top_corner_fix = library:create("UICorner", {
-        CornerRadius = UDim.new(0, 6);
-        Parent = background
-    });
-
-    local title_text = library:create("TextLabel", {
-        FontFace = fonts["ProggyClean"];
-        TextColor3 = rgb(255, 255, 255);
-        Text = cfg.name;
-        Parent = title_bar;
-        Size = dim2(1, -10, 1, 0);
-        Position = dim2(0, 8, 0, 0);
-        BackgroundTransparency = 1;
-        TextXAlignment = Enum.TextXAlignment.Left;
-        BorderSizePixel = 0;
-        TextSize = 12;
-    });
-
-    -- ViewportFrame
-    local viewport_frame = library:create("ViewportFrame", {
-        Parent = background;
-        Size = dim2(1, -20, 1, -44);
-        Position = dim2(0, 10, 0, 30);
-        BackgroundColor3 = Color3.fromRGB(45, 45, 45);
-        BorderSizePixel = 0;
-    });
-
-    local viewport_corner = library:create("UICorner", {
-        CornerRadius = UDim.new(0, 4);
-        Parent = viewport_frame
-    });
-
-    -- WorldModel inside ViewportFrame
-    local world_model = Instance.new("WorldModel")
-    world_model.Name = "WorldModel"
-    world_model.Parent = viewport_frame
-
-    -- Variables for spinning
-    local spin_connection = nil
-    local current_character = nil
-    local current_camera = nil
-    local spin_speed = cfg.spin_speed
-    local spin_enabled = cfg.spin_enabled
-
-    -- Control buttons (optional)
-    local control_frame
-    if cfg.show_controls then
-        control_frame = library:create("Frame", {
-            Parent = background;
-            Size = dim2(1, -20, 0, 30);
-            Position = dim2(0, 10, 1, -35);
-            BackgroundTransparency = 1;
-            BorderSizePixel = 0;
-        });
-
-        -- Spin toggle button
-        local spin_button = library:create("TextButton", {
-            Parent = control_frame;
-            Size = dim2(0, 24, 0, 24);
-            Position = dim2(0, 0, 0, 3);
-            BackgroundColor3 = cfg.accent_color;
-            Text = "⏸";
-            TextColor3 = rgb(255, 255, 255);
-            FontFace = fonts["ProggyClean"];
-            TextSize = 14;
-            AutoButtonColor = false;
-            BorderSizePixel = 0;
-        });
-
-        local spin_button_corner = library:create("UICorner", {
-            CornerRadius = UDim.new(0, 4);
-            Parent = spin_button
-        });
-
-        spin_button.MouseButton1Click:Connect(function()
-            spin_enabled = not spin_enabled
-            spin_button.BackgroundColor3 = spin_enabled and cfg.accent_color or Color3.fromRGB(100, 100, 100)
-            spin_button.Text = spin_enabled and "⏸" or "⏵"
-            
-            if spin_enabled then
-                cfg.start_spinning()
-            else
-                cfg.stop_spinning()
-                if current_camera and current_character then
-                    local root = current_character:FindFirstChild("HumanoidRootPart") or current_character:FindFirstChild("Torso") or current_character:FindFirstChild("UpperTorso")
-                    if root then
-                        current_camera.CFrame = CFrame.new(root.Position - Vector3.new(0, 0, 8)) * CFrame.Angles(0, math.rad(180), 0)
-                    end
-                end
-            end
-        end);
-
-        -- Reload button
-        local reload_button = library:create("TextButton", {
-            Parent = control_frame;
-            Size = dim2(0, 60, 0, 24);
-            Position = dim2(1, -60, 0, 3);
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50);
-            Text = "Reload";
-            TextColor3 = rgb(255, 255, 255);
-            FontFace = fonts["ProggyClean"];
-            TextSize = 11;
-            AutoButtonColor = false;
-            BorderSizePixel = 0;
-        });
-
-        local reload_corner = library:create("UICorner", {
-            CornerRadius = UDim.new(0, 4);
-            Parent = reload_button
-        });
-
-        reload_button.MouseButton1Click:Connect(function()
-            cfg.stop_spinning()
-            cfg.load_character()
-            if spin_enabled then
-                cfg.start_spinning()
-            end
-        end);
-
-        -- Speed slider
-        local speed_label = library:create("TextLabel", {
-            Parent = control_frame;
-            Size = dim2(0, 45, 0, 24);
-            Position = dim2(0, 30, 0, 3);
-            BackgroundTransparency = 1;
-            Text = "Speed:";
-            TextColor3 = rgb(200, 200, 200);
-            FontFace = fonts["ProggyClean"];
-            TextSize = 11;
-            TextXAlignment = Enum.TextXAlignment.Right;
-        });
-
-        local slider_frame = library:create("Frame", {
-            Parent = control_frame;
-            Size = dim2(0, 80, 0, 4);
-            Position = dim2(0, 80, 0, 13);
-            BackgroundColor3 = Color3.fromRGB(80, 80, 80);
-            BorderSizePixel = 0;
-        });
-
-        local slider_corner = library:create("UICorner", {
-            CornerRadius = UDim.new(0, 2);
-            Parent = slider_frame
-        });
-
-        local slider_button = library:create("TextButton", {
-            Parent = slider_frame;
-            Size = dim2(0, 8, 0, 8);
-            Position = dim2((spin_speed - 0.1) / 0.8, -4, 0.5, -4);
-            BackgroundColor3 = cfg.accent_color;
-            Text = "";
-            AutoButtonColor = false;
-            BorderSizePixel = 0;
-        });
-
-        local slider_button_corner = library:create("UICorner", {
-            CornerRadius = UDim.new(0, 4);
-            Parent = slider_button
-        });
-
-        -- Slider dragging
-        local slider_dragging = false
-
-        slider_button.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                slider_dragging = true
-            end
-        end)
-
-        slider_button.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                slider_dragging = false
-            end
-        end)
-
-        library:connection(uis.InputChanged, function(input)
-            if slider_dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                local mouse_pos = uis:GetMouseLocation()
-                local abs_pos = slider_frame.AbsolutePosition
-                local relative_x = math.clamp(mouse_pos.X - abs_pos.X, 0, slider_frame.AbsoluteSize.X)
-                local percent = relative_x / slider_frame.AbsoluteSize.X
-                spin_speed = 0.1 + (percent * 0.8)
-                slider_button.Position = UDim2.new(percent, -4, 0.5, -4)
-                
-                if spin_enabled then
-                    cfg.start_spinning()
-                end
-            end
-        end)
-    end
-
-    -- Functions
-    function cfg.load_character()
-        -- Clear existing models
-        for _, child in ipairs(world_model:GetChildren()) do
-            if child:IsA("Model") then
-                child:Destroy()
-            end
-        end
-        
-        -- Create character model from UserId
-        local success, character = pcall(function()
-            return game:GetService("Players"):CreateHumanoidModelFromUserId(lp.UserId)
-        end)
-        
-        if not success or not character then
-            notifications:create_notification({ name = "Failed to load character model" })
-            return
-        end
-        
-        character.Parent = world_model
-        current_character = character
-        
-        task.wait(0.1)
-        
-        -- Setup camera
-        local viewport_camera = Instance.new("Camera")
-        viewport_frame.CurrentCamera = viewport_camera
-        viewport_camera.Parent = viewport_frame
-        current_camera = viewport_camera
-        
-        -- Position camera to face the character
-        local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-        if root then
-            viewport_camera.CFrame = CFrame.new(root.Position - Vector3.new(0, 0, 8)) * CFrame.Angles(0, math.rad(180), 0)
-        else
-            viewport_camera.CFrame = CFrame.new(0, 2, -8) * CFrame.Angles(0, math.rad(180), 0)
-        end
-        
-        -- Start spinning if enabled
-        if spin_enabled then
-            cfg.start_spinning()
-        end
-        
-        cfg.callback(character)
-    end
-
-    function cfg.start_spinning()
-        cfg.stop_spinning()
-        
-        if not spin_enabled or not current_character or not current_camera then
-            return
-        end
-        
-        local root = current_character:FindFirstChild("HumanoidRootPart") or current_character:FindFirstChild("Torso") or current_character:FindFirstChild("UpperTorso")
-        if not root then
-            return
-        end
-        
-        local angle = 0
-        spin_connection = run.RenderStepped:Connect(function(dt)
-            angle = angle + dt * spin_speed
-            if angle > math.pi * 2 then
-                angle = angle - math.pi * 2
-            end
-            
-            local distance = 8
-            local x = math.sin(angle) * distance
-            local z = math.cos(angle) * distance
-            
-            current_camera.CFrame = CFrame.new(
-                root.Position + Vector3.new(x, 0, z),
-                root.Position
-            )
-        end)
-    end
-
-    function cfg.stop_spinning()
-        if spin_connection then
-            spin_connection:Disconnect()
-            spin_connection = nil
-        end
-    end
-
-    function cfg.update_accent_color(color)
-        stroke.Color = color
-        if cfg.show_controls and background:FindFirstChild("ControlFrame") then
-            local spin_btn = background.ControlFrame:FindFirstChildWhichIsA("TextButton")
-            if spin_btn and spin_btn.Name ~= "ReloadButton" then
-                spin_btn.BackgroundColor3 = color
-            end
-        end
-    end
-
-    function cfg.set_spin_speed(speed)
-        spin_speed = speed
-        if spin_enabled then
-            cfg.start_spinning()
-        end
-    end
-
-    function cfg.set_spin_enabled(bool)
-        spin_enabled = bool
-        if spin_enabled then
-            cfg.start_spinning()
-        else
-            cfg.stop_spinning()
-        end
-    end
-
-    function cfg.refresh()
-        cfg.load_character()
-    end
-
-    -- Load character on creation
-    task.spawn(function()
-        task.wait(0.1)
-        cfg.load_character()
-    end)
-
-    -- Cleanup on destroy
-    local connection_cleanup
-    connection_cleanup = container.AncestryChanged:Connect(function()
-        if not container.Parent then
-            cfg.stop_spinning()
-            if connection_cleanup then
-                connection_cleanup:Disconnect()
-            end
-        end
-    end)
-
-    -- Store references
-    cfg.container = container
-    cfg.background = background
-    cfg.viewport_frame = viewport_frame
-    cfg.world_model = world_model
-    cfg.current_character = current_character
-    cfg.current_camera = current_camera
-    cfg.spin_connection = spin_connection
-
-    return setmetatable(cfg, library)
-end
-
--- Global click handler
+-- Global click handler to close open elements
 library:connection(uis.InputEnded, function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         task.wait()
@@ -3023,22 +2706,6 @@ library:connection(uis.InputEnded, function(input)
         ) then
             library:close_current_element()
         end
-    end
-end))
-
--- Create watermark
-local watermark = library:watermark({name = "priv9 - 0 fps - 0 ping"})
-local fps = 0
-local watermark_delay = tick() 
-
-run.RenderStepped:Connect(function()
-    fps = fps + 1
-
-    if tick() - watermark_delay > 1 then 
-        watermark_delay = tick()
-        local ping = math.floor(stats.PerformanceStats.Ping:GetValue() or 0) .. "ms"                
-        watermark.update_text(string.format("priv9 - fps: %s - ping: %s", fps, ping))
-        fps = 0
     end
 end)
 
