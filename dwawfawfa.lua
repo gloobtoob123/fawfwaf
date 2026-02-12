@@ -1280,7 +1280,7 @@ function library:list(options)
     return setmetatable(cfg, library)
 end     
 
--- MODIFIED: Slider with text inside and no title
+-- MODIFIED: Slider with text inside and no title - HALF SIZE
 function library:slider(options) 
     local cfg = {
         name = options.name or nil,
@@ -1299,12 +1299,12 @@ function library:slider(options)
         dragging = false,
     } 
 
-    -- Instances 
+    -- Instances - HALF SIZE (was 25, now 12)
     local slider = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 25);
+        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1315,7 +1315,7 @@ function library:slider(options)
         AutoButtonColor = false;
         Position = dim2(0, 0, 0, 0);
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 25);
+        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline
     }); library:apply_theme(outline, "inline", "BackgroundColor3")
@@ -1337,7 +1337,7 @@ function library:slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(accent, "accent", "BackgroundColor3")
     
-    -- Text inside the slider
+    -- Text inside the slider - SMALLER TEXT SIZE
     local slider_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1350,7 +1350,7 @@ function library:slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 12;
+        TextSize = 10; -- Changed from 12 to 10 (smaller)
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
@@ -1408,7 +1408,7 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
--- MODIFIED: Multi Slider with text inside and no title
+-- MODIFIED: Multi Slider with text inside and no title - HALF SIZE
 function library:multi_slider(options)
     local cfg = {
         name = options.name or nil,
@@ -1436,12 +1436,12 @@ function library:multi_slider(options)
         callback = options.callback or function(left_val, right_val) end,
     }
 
-    -- Main container
+    -- Main container - HALF SIZE (was 25, now 12)
     local container = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 25); -- Single row height
+        Size = dim2(1, 0, 0, 12); -- Changed from 25 to 12
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1494,7 +1494,7 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
     
-    -- Left slider text inside
+    -- Left slider text inside - SMALLER TEXT SIZE
     local left_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1507,7 +1507,7 @@ function library:multi_slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 12;
+        TextSize = 10; -- Changed from 12 to 10 (smaller)
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
@@ -1550,7 +1550,7 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
     
-    -- Right slider text inside
+    -- Right slider text inside - SMALLER TEXT SIZE
     local right_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
@@ -1563,7 +1563,7 @@ function library:multi_slider(options)
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
-        TextSize = 12;
+        TextSize = 10; -- Changed from 12 to 10 (smaller)
         BackgroundColor3 = rgb(255, 255, 255),
         ZIndex = 2
     });
