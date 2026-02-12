@@ -1007,9 +1007,10 @@ function library:section(properties)
 end 
 
 -- Elements  
+-- FIXED TOGGLE FUNCTION
 function library:toggle(options) 
     local cfg = {
-        enabled = options.enabled or nil,
+        enabled = options.default or false, -- Initialize enabled state
         name = options.name or "Toggle",
         flag = options.flag or options.name or "Flag",
         
@@ -1079,7 +1080,7 @@ function library:toggle(options)
             Position = dim2(0, 4, 0, 21);
             Size = dim2(1, 0, 0, 0);
             BorderSizePixel = 0;
-            Visible = false;
+            Visible = cfg.default; -- Set visibility based on default state
             AutomaticSize = Enum.AutomaticSize.Y;
             BackgroundColor3 = rgb(255, 255, 255)
         }); cfg.elements = elements
@@ -1093,7 +1094,9 @@ function library:toggle(options)
     end 
     
     -- Functions
-    function cfg.set(bool)                        
+    function cfg.set(bool)
+        bool = bool or false -- Ensure boolean
+        cfg.enabled = bool
         fill.BackgroundColor3 = bool and themes.preset.accent or themes.preset.inline
         flags[cfg.flag] = bool
         cfg.callback(bool)
@@ -1103,13 +1106,13 @@ function library:toggle(options)
         end
     end 
 
+    -- Set initial state
     cfg.set(cfg.default)
     config_flags[cfg.flag] = cfg.set
 
     -- Connections
     toggle.MouseButton1Click:Connect(function()
-        cfg.enabled = not cfg.enabled 
-        cfg.set(cfg.enabled)
+        cfg.set(not cfg.enabled) -- Toggle using current state
     end)
 
     return setmetatable(cfg, library)
