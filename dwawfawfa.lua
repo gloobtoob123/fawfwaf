@@ -1399,6 +1399,260 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
+-- NEW: Multi Slider Element - Two sliders side by side
+function library:multi_slider(options)
+    local cfg = {
+        name = options.name or "Multi Slider",
+        
+        -- Left slider options
+        left_name = options.left_name or "Left",
+        left_min = options.left_min or 0,
+        left_max = options.left_max or 100,
+        left_default = options.left_default or 50,
+        left_suffix = options.left_suffix or "",
+        left_flag = options.left_flag or (options.flag_prefix and options.flag_prefix .. "_left") or "multi_left",
+        left_intervals = options.left_interval or 1,
+        
+        -- Right slider options
+        right_name = options.right_name or "Right",
+        right_min = options.right_min or 0,
+        right_max = options.right_max or 100,
+        right_default = options.right_default or 50,
+        right_suffix = options.right_suffix or "",
+        right_flag = options.right_flag or (options.flag_prefix and options.flag_prefix .. "_right") or "multi_right",
+        right_intervals = options.right_interval or 1,
+        
+        callback = options.callback or function(left_val, right_val) end,
+    }
+
+    -- Main container
+    local container = library:create("Frame", {
+        Parent = self.elements;
+        BackgroundTransparency = 1;
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(1, 0, 0, 45); -- Taller to accommodate both sliders
+        BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Title for the multi slider group
+    local title = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.name;
+        Parent = container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, 0);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.X;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Create horizontal layout for two sliders
+    local slider_row = library:create("Frame", {
+        Parent = container;
+        BackgroundTransparency = 1;
+        Position = dim2(0, 0, 0, 16);
+        Size = dim2(1, 0, 0, 25);
+        BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Left slider container (50% width)
+    local left_container = library:create("Frame", {
+        Parent = slider_row;
+        BackgroundTransparency = 1;
+        Position = dim2(0, 0, 0, 0);
+        Size = dim2(0.5, -4, 1, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Left slider value text
+    local left_text = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.left_name .. "<font color='#AAAAAA'> - " .. cfg.left_default .. cfg.left_suffix .. "</font>";
+        Parent = left_container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, -2);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.XY;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    local left_outline = library:create("TextButton", {
+        Parent = left_container;
+        Text = "";
+        AutoButtonColor = false;
+        Position = dim2(0, 0, 0, 13);
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(1, 0, 0, 12);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.inline
+    }); library:apply_theme(left_outline, "inline", "BackgroundColor3")
+
+    local left_inline = library:create("Frame", {
+        Parent = left_outline;
+        Position = dim2(0, 1, 0, 1);
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(1, -2, 1, -2);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.inline
+    }); library:apply_theme(left_inline, "inline", "BackgroundColor3")
+
+    local left_accent = library:create("Frame", {
+        Parent = left_inline;
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(0.5, 0, 1, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.accent
+    }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
+
+    -- Right slider container (50% width)
+    local right_container = library:create("Frame", {
+        Parent = slider_row;
+        BackgroundTransparency = 1;
+        Position = dim2(0.5, 4, 0, 0);
+        Size = dim2(0.5, -4, 1, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Right slider value text
+    local right_text = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.right_name .. "<font color='#AAAAAA'> - " .. cfg.right_default .. cfg.right_suffix .. "</font>";
+        Parent = right_container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, -2);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.XY;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    local right_outline = library:create("TextButton", {
+        Parent = right_container;
+        Text = "";
+        AutoButtonColor = false;
+        Position = dim2(0, 0, 0, 13);
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(1, 0, 0, 12);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.inline
+    }); library:apply_theme(right_outline, "inline", "BackgroundColor3")
+
+    local right_inline = library:create("Frame", {
+        Parent = right_outline;
+        Position = dim2(0, 1, 0, 1);
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(1, -2, 1, -2);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.inline
+    }); library:apply_theme(right_inline, "inline", "BackgroundColor3")
+
+    local right_accent = library:create("Frame", {
+        Parent = right_inline;
+        BorderColor3 = rgb(0, 0, 0);
+        Size = dim2(0.5, 0, 1, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = themes.preset.accent
+    }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
+
+    -- Slider state
+    cfg.left_value = cfg.left_default
+    cfg.right_value = cfg.right_default
+    cfg.left_dragging = false
+    cfg.right_dragging = false
+
+    -- Left slider functions
+    function cfg.set_left(value)
+        local valuee = tonumber(value)
+        if valuee == nil then return end
+
+        cfg.left_value = clamp(library:round(valuee, cfg.left_intervals), cfg.left_min, cfg.left_max)
+        
+        left_accent.Size = dim2((cfg.left_value - cfg.left_min) / (cfg.left_max - cfg.left_min), 0, 1, 0)
+        left_text.Text = cfg.left_name .. "<font color='#AAAAAA'> - " .. tostring(cfg.left_value) .. cfg.left_suffix .. "</font>"
+        
+        flags[cfg.left_flag] = cfg.left_value
+        cfg.callback(cfg.left_value, cfg.right_value)
+    end
+
+    -- Right slider functions
+    function cfg.set_right(value)
+        local valuee = tonumber(value)
+        if valuee == nil then return end
+
+        cfg.right_value = clamp(library:round(valuee, cfg.right_intervals), cfg.right_min, cfg.right_max)
+        
+        right_accent.Size = dim2((cfg.right_value - cfg.right_min) / (cfg.right_max - cfg.right_min), 0, 1, 0)
+        right_text.Text = cfg.right_name .. "<font color='#AAAAAA'> - " .. tostring(cfg.right_value) .. cfg.right_suffix .. "</font>"
+        
+        flags[cfg.right_flag] = cfg.right_value
+        cfg.callback(cfg.left_value, cfg.right_value)
+    end
+
+    -- Set default values
+    cfg.set_left(cfg.left_default)
+    cfg.set_right(cfg.right_default)
+
+    -- Config flags
+    config_flags[cfg.left_flag] = cfg.set_left
+    config_flags[cfg.right_flag] = cfg.set_right
+
+    -- Connections for left slider
+    left_outline.MouseButton1Down:Connect(function()
+        cfg.left_dragging = true
+    end)
+
+    -- Connections for right slider
+    right_outline.MouseButton1Down:Connect(function()
+        cfg.right_dragging = true
+    end)
+
+    -- Mouse movement for both sliders
+    library:connection(uis.InputChanged, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if cfg.left_dragging then
+                local size_x = (input.Position.X - left_inline.AbsolutePosition.X) / left_inline.AbsoluteSize.X
+                local value = ((cfg.left_max - cfg.left_min) * size_x) + cfg.left_min
+                cfg.set_left(value)
+            end
+            if cfg.right_dragging then
+                local size_x = (input.Position.X - right_inline.AbsolutePosition.X) / right_inline.AbsoluteSize.X
+                local value = ((cfg.right_max - cfg.right_min) * size_x) + cfg.right_min
+                cfg.set_right(value)
+            end
+        end
+    end)
+
+    -- Mouse release for both sliders
+    library:connection(uis.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            cfg.left_dragging = false
+            cfg.right_dragging = false
+        end
+    end)
+
+    return setmetatable(cfg, library)
+end
+
 function library:dropdown(options) 
     local cfg = {
         name = options.name or nil,
