@@ -1040,12 +1040,6 @@ function library:toggle(options)
 
         color = self.color;
         count = self.count;
-        
-        has_colorpicker = options.colorpicker or false,
-        colorpicker_color = options.colorpicker_color or Color3.new(1, 1, 1),
-        colorpicker_alpha = options.colorpicker_alpha or 0,
-        colorpicker_flag = options.colorpicker_flag or (options.flag and options.flag .. "_color") or "toggle_color",
-        colorpicker_callback = options.colorpicker_callback or function() end,
     }
 
     -- Instances
@@ -1076,22 +1070,10 @@ function library:toggle(options)
         BackgroundColor3 = rgb(255, 255, 255)
     }); 
     
-    -- Create a container for the right side elements (toggle + colorpicker)
-    local right_container = library:create("Frame", {
+    local accent = library:create("Frame", {
         AnchorPoint = vec2(1, 0);
         Parent = toggle;
         Position = dim2(1, 0, 0, 0);
-        BackgroundTransparency = 1;
-        Size = dim2(0, cfg.has_colorpicker and 42 or 12, 1, 0);
-        BorderSizePixel = 0;
-        BackgroundColor3 = rgb(255, 255, 255)
-    });
-    
-    -- Toggle accent
-    local accent = library:create("Frame", {
-        AnchorPoint = cfg.has_colorpicker and vec2(1, 0) or vec2(0.5, 0);
-        Parent = right_container;
-        Position = cfg.has_colorpicker and dim2(1, -12, 0, 0) or dim2(0.5, 0, 0, 0);
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(0, 12, 0, 12);
         BorderSizePixel = 0;
@@ -1106,349 +1088,7 @@ function library:toggle(options)
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline,
         Name = "Fill"
-    });
-    
-    -- Colorpicker for toggle (if enabled)
-    if cfg.has_colorpicker then
-        local colorpicker_element = library:create("TextButton", {
-            Parent = right_container;
-            BackgroundTransparency = 1;
-            Text = "";
-            AutoButtonColor = false;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(0, 12, 0, 12);
-            Position = dim2(1, -24, 0, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255)
-        });
-        
-        local color_accent = library:create("Frame", {
-            AnchorPoint = vec2(1, 0);
-            Parent = colorpicker_element;
-            Position = dim2(1, 0, 0, 0);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(0, 12, 0, 12);
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline
-        }); library:apply_theme(color_accent, "inline", "BackgroundColor3")
-        
-        local color_fill = library:create("Frame", {
-            Parent = color_accent;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = cfg.colorpicker_color,
-            Name = "ColorFill"
-        });
-        
-        -- Colorpicker functionality
-        local color_h, color_s, color_v = cfg.colorpicker_color:ToHSV()
-        local color_a = cfg.colorpicker_alpha
-        
-        -- Colorpicker frame
-        local colorpicker_frame = library:create("Frame", {
-            Parent = library.gui;
-            Position = dim2(0, 0, 0, 0);
-            BorderColor3 = rgb(0, 0, 0);
-            Visible = false;
-            Size = dim2(0, 150, 0, 150);
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline,
-            ZIndex = 1000
-        }); library:apply_theme(colorpicker_frame, "inline", "BackgroundColor3")
-        
-        -- Setup colorpicker UI (similar to main colorpicker)
-        local cp_a = library:create("Frame", {
-            Parent = colorpicker_frame;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, 0, 1, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline,
-            ZIndex = 1001
-        }); library:apply_theme(cp_a, "inline", "BackgroundColor3")
-        
-        local cp_e = library:create("Frame", {
-            Parent = cp_a;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(0, 0, 0);
-            BackgroundTransparency = 0.6;
-            ZIndex = 1002
-        });
-        
-        library:create("UIPadding", {
-            PaddingTop = dim(0, 7);
-            PaddingBottom = dim(0, -13);
-            Parent = cp_e;
-            PaddingRight = dim(0, 6);
-            PaddingLeft = dim(0, 7)
-        });
-        
-        local cp_hue_button = library:create("TextButton", {
-            AnchorPoint = vec2(1, 0);
-            Text = "";
-            AutoButtonColor = false;
-            Parent = cp_e;
-            Position = dim2(1, -1, 0, 0);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(0, 14, 1, -60);
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline,
-            ZIndex = 1003
-        }); library:apply_theme(cp_hue_button, "inline", "BackgroundColor3")
-        
-        local cp_hue_drag = library:create("Frame", {
-            Parent = cp_hue_button;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1004
-        });
-        
-        library:create("UIGradient", {
-            Rotation = 90;
-            Parent = cp_hue_drag;
-            Color = rgbseq{rgbkey(0, rgb(255, 0, 0)), rgbkey(0.17, rgb(255, 255, 0)), rgbkey(0.33, rgb(0, 255, 0)), rgbkey(0.5, rgb(0, 255, 255)), rgbkey(0.67, rgb(0, 0, 255)), rgbkey(0.83, rgb(255, 0, 255)), rgbkey(1, rgb(255, 0, 0))}
-        });
-        
-        local cp_hue_picker = library:create("Frame", {
-            Parent = cp_hue_drag;
-            BorderMode = Enum.BorderMode.Inset;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, 2, 0, 3);
-            Position = dim2(0, -1, 0, -1);
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1005
-        });
-        
-        local cp_alpha_button = library:create("TextButton", {
-            AnchorPoint = vec2(0, 0.5);
-            Text = "";
-            AutoButtonColor = false;
-            Parent = cp_e;
-            Position = dim2(0, 0, 1, -48);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -1, 0, 14);
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline,
-            ZIndex = 1003
-        }); library:apply_theme(cp_alpha_button, "inline", "BackgroundColor3")
-        
-        local cp_alpha_color = library:create("Frame", {
-            Parent = cp_alpha_button;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(0, 221, 255),
-            ZIndex = 1004
-        });
-        
-        local cp_alphaind = library:create("ImageLabel", {
-            ScaleType = Enum.ScaleType.Tile;
-            BorderColor3 = rgb(0, 0, 0);
-            Parent = cp_alpha_color;
-            Image = "rbxassetid://18274452449";
-            BackgroundTransparency = 1;
-            Size = dim2(1, 0, 1, 0);
-            TileSize = dim2(0, 4, 0, 4);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1005
-        });
-        
-        library:create("UIGradient", {
-            Parent = cp_alphaind;
-            Transparency = numseq{numkey(0, 0), numkey(1, 1)}
-        });
-        
-        local cp_alpha_picker = library:create("Frame", {
-            Parent = cp_alpha_color;
-            BorderMode = Enum.BorderMode.Inset;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(0, 3, 1, 2);
-            Position = dim2(0, -1, 0, -1);
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1006
-        });
-        
-        local cp_sv_button = library:create("TextButton", {
-            Parent = cp_e;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -20, 1, -60);
-            Text = "";
-            AutoButtonColor = false;
-            BorderSizePixel = 0;
-            BackgroundColor3 = themes.preset.inline,
-            ZIndex = 1003
-        }); library:apply_theme(cp_sv_button, "inline", "BackgroundColor3")
-        
-        local cp_color_display = library:create("Frame", {
-            Parent = cp_sv_button;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = cfg.colorpicker_color,
-            ZIndex = 1004
-        });
-        
-        local cp_val = library:create("TextButton", {
-            Parent = cp_color_display;
-            Text = "";
-            AutoButtonColor = false;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, 0, 1, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1005
-        });
-        
-        library:create("UIGradient", {
-            Parent = cp_val;
-            Transparency = numseq{numkey(0, 0), numkey(1, 1)}
-        });
-        
-        local cp_sv_picker = library:create("Frame", {
-            Parent = cp_color_display;
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(0, 3, 0, 3);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(0, 0, 0),
-            ZIndex = 1006
-        });
-        
-        local cp_inline = library:create("Frame", {
-            Parent = cp_sv_picker;
-            Position = dim2(0, 1, 0, 1);
-            BorderColor3 = rgb(0, 0, 0);
-            Size = dim2(1, -2, 1, -2);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 1007
-        });
-        
-        local cp_saturation = library:create("TextButton", {
-            Parent = cp_color_display;
-            Text = "";
-            AutoButtonColor = false;
-            Size = dim2(1, 0, 1, 0);
-            BorderColor3 = rgb(0, 0, 0);
-            ZIndex = 1005;
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255)
-        });
-        
-        library:create("UIGradient", {
-            Rotation = 270;
-            Transparency = numseq{numkey(0, 0), numkey(1, 1)};
-            Parent = cp_saturation;
-            Color = rgbseq{rgbkey(0, rgb(0, 0, 0)), rgbkey(1, rgb(0, 0, 0))}
-        });
-        
-        -- Colorpicker state
-        local cp_dragging_sat = false
-        local cp_dragging_hue = false
-        local cp_dragging_alpha = false
-        local cp_open = false
-        
-        function cfg.set_colorpicker_visible(bool)
-            colorpicker_frame.Visible = bool
-            if bool then
-                colorpicker_frame.Position = dim_offset(color_accent.AbsolutePosition.X - 151, color_accent.AbsolutePosition.Y + color_accent.AbsoluteSize.Y + 65)
-                colorpicker_frame.ZIndex = 1000
-            end
-        end
-        
-        function cfg.set_colorpicker(color, alpha)
-            if color then
-                color_h, color_s, color_v = color:ToHSV()
-            end
-            if alpha then
-                color_a = alpha
-            end
-            
-            local Color = Color3.fromHSV(color_h, color_s, color_v)
-            
-            cp_hue_picker.Position = dim2(0, -1, 1 - color_h, -1)
-            cp_alpha_picker.Position = dim2(1 - color_a, -1, 0, -1)
-            cp_sv_picker.Position = dim2(color_s, -1, 1 - color_v, -1)
-            
-            cp_alpha_color.BackgroundColor3 = Color3.fromHSV(color_h, 1, 1)
-            color_fill.BackgroundColor3 = Color
-            cp_color_display.BackgroundColor3 = Color3.fromHSV(color_h, 1, 1)
-            
-            flags[cfg.colorpicker_flag] = {
-                Color = Color;
-                Transparency = color_a
-            }
-            
-            cfg.colorpicker_callback(Color, color_a)
-        end
-        
-        function cfg.update_colorpicker()
-            local mouse = uis:GetMouseLocation()
-            local offset = vec2(mouse.X, mouse.Y - gui_offset)
-            
-            if cp_dragging_sat then
-                color_s = clamp((offset - cp_sv_button.AbsolutePosition).X / cp_sv_button.AbsoluteSize.X, 0, 1)
-                color_v = 1 - clamp((offset - cp_sv_button.AbsolutePosition).Y / cp_sv_button.AbsoluteSize.Y, 0, 1)
-            elseif cp_dragging_hue then
-                color_h = 1 - clamp((offset - cp_hue_button.AbsolutePosition).Y / cp_hue_button.AbsoluteSize.Y, 0, 1)
-            elseif cp_dragging_alpha then
-                color_a = 1 - clamp((offset - cp_alpha_button.AbsolutePosition).X / cp_alpha_button.AbsoluteSize.X, 0, 1)
-            end
-            
-            cfg.set_colorpicker(nil, nil)
-        end
-        
-        -- Initialize colorpicker
-        cfg.set_colorpicker(cfg.colorpicker_color, cfg.colorpicker_alpha)
-        config_flags[cfg.colorpicker_flag] = cfg.set_colorpicker
-        
-        -- Colorpicker connections
-        colorpicker_element.MouseButton1Click:Connect(function()
-            cp_open = not cp_open
-            cfg.set_colorpicker_visible(cp_open)
-        end)
-        
-        cp_saturation.MouseButton1Down:Connect(function()
-            cp_dragging_sat = true
-        end)
-        
-        cp_hue_button.MouseButton1Down:Connect(function()
-            cp_dragging_hue = true
-        end)
-        
-        cp_alpha_button.MouseButton1Down:Connect(function()
-            cp_dragging_alpha = true
-        end)
-        
-        -- Input connections
-        library:connection(uis.InputChanged, function(input)
-            if (cp_dragging_sat or cp_dragging_hue or cp_dragging_alpha) and input.UserInputType == Enum.UserInputType.MouseMovement then
-                cfg.update_colorpicker()
-            end
-        end)
-        
-        library:connection(uis.InputEnded, function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                cp_dragging_sat = false
-                cp_dragging_hue = false
-                cp_dragging_alpha = false
-                
-                if not (library:mouse_in_frame(colorpicker_element) or library:mouse_in_frame(colorpicker_frame)) then
-                    cp_open = false
-                    cfg.set_colorpicker_visible(false)
-                end
-            end
-        end)
-    end
+    });                
     
     -- Sub sections
     local elements;
@@ -1667,11 +1307,28 @@ function library:slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
     
+    local eeeee = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = "max distance : 5000";
+        Parent = slider;
+        Size = dim2(1, 0, 0, 0);
+        Position = dim2(0, 1, 0, -2);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.XY;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+    
     local outline = library:create("TextButton", {
         Parent = slider;
         Text = "";
         AutoButtonColor = false;
-        Position = dim2(0, 0, 0, 6);
+        Position = dim2(0, 0, 0, 13);
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
@@ -1695,24 +1352,6 @@ function library:slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(accent, "accent", "BackgroundColor3")
     
-    -- Value text INSIDE the slider
-    local value_text = library:create("TextLabel", {
-        FontFace = fonts["ProggyClean"];
-        TextColor3 = rgb(255, 255, 255);
-        BorderColor3 = rgb(0, 0, 0);
-        Text = tostring(cfg.default) .. cfg.suffix;
-        Parent = inline;
-        Size = dim2(1, -4, 1, 0);
-        Position = dim2(0, 2, 0, 0);
-        BackgroundTransparency = 1;
-        TextXAlignment = Enum.TextXAlignment.Center;
-        TextYAlignment = Enum.TextYAlignment.Center;
-        BorderSizePixel = 0;
-        TextSize = 10;
-        BackgroundColor3 = rgb(255, 255, 255),
-        ZIndex = 2
-    });
-    
     -- Functions 
     function cfg.set(value)
         local valuee = tonumber(value)
@@ -1724,7 +1363,7 @@ function library:slider(options)
         cfg.value = clamp(library:round(valuee, cfg.intervals), cfg.min, cfg.max)
 
         accent.Size = dim2((cfg.value - cfg.min) / (cfg.max - cfg.min), 0, 1, 0)
-        value_text.Text = tostring(cfg.value) .. cfg.suffix
+        eeeee.Text = cfg.name ..  "<font color='#AAAAAA'>" .. ' - ' .. tostring(cfg.value) .. cfg.suffix .. "</font>"
         
         flags[cfg.flag] = cfg.value
 
@@ -1760,6 +1399,7 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
+-- NEW: Multi Slider Element - Two sliders side by side
 function library:multi_slider(options)
     local cfg = {
         name = options.name or "Multi Slider",
@@ -1790,8 +1430,25 @@ function library:multi_slider(options)
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 25);
+        Size = dim2(1, 0, 0, 45); -- Taller to accommodate both sliders
         BorderSizePixel = 0;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
+    -- Title for the multi slider group
+    local title = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.name;
+        Parent = container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, 0);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.X;
+        TextSize = 12;
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
@@ -1799,8 +1456,8 @@ function library:multi_slider(options)
     local slider_row = library:create("Frame", {
         Parent = container;
         BackgroundTransparency = 1;
-        Position = dim2(0, 0, 0, 6);
-        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 0, 0, 16);
+        Size = dim2(1, 0, 0, 25);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1815,13 +1472,31 @@ function library:multi_slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Left slider value text
+    local left_text = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.left_name .. "<font color='#AAAAAA'> - " .. cfg.left_default .. cfg.left_suffix .. "</font>";
+        Parent = left_container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, -2);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.XY;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
     local left_outline = library:create("TextButton", {
         Parent = left_container;
         Text = "";
         AutoButtonColor = false;
-        Position = dim2(0, 0, 0, 0);
+        Position = dim2(0, 0, 0, 13);
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 1, 0);
+        Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline
     }); library:apply_theme(left_outline, "inline", "BackgroundColor3")
@@ -1842,23 +1517,6 @@ function library:multi_slider(options)
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
-    
-    local left_value = library:create("TextLabel", {
-        FontFace = fonts["ProggyClean"];
-        TextColor3 = rgb(255, 255, 255);
-        BorderColor3 = rgb(0, 0, 0);
-        Text = tostring(cfg.left_default) .. cfg.left_suffix;
-        Parent = left_inline;
-        Size = dim2(1, -4, 1, 0);
-        Position = dim2(0, 2, 0, 0);
-        BackgroundTransparency = 1;
-        TextXAlignment = Enum.TextXAlignment.Center;
-        TextYAlignment = Enum.TextYAlignment.Center;
-        BorderSizePixel = 0;
-        TextSize = 10;
-        BackgroundColor3 = rgb(255, 255, 255),
-        ZIndex = 2
-    });
 
     -- Right slider container (50% width)
     local right_container = library:create("Frame", {
@@ -1870,13 +1528,31 @@ function library:multi_slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
+    -- Right slider value text
+    local right_text = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = cfg.right_name .. "<font color='#AAAAAA'> - " .. cfg.right_default .. cfg.right_suffix .. "</font>";
+        Parent = right_container;
+        Size = dim2(1, 0, 0, 12);
+        Position = dim2(0, 1, 0, -2);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        BorderSizePixel = 0;
+        AutomaticSize = Enum.AutomaticSize.XY;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255)
+    });
+
     local right_outline = library:create("TextButton", {
         Parent = right_container;
         Text = "";
         AutoButtonColor = false;
-        Position = dim2(0, 0, 0, 0);
+        Position = dim2(0, 0, 0, 13);
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 1, 0);
+        Size = dim2(1, 0, 0, 12);
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline
     }); library:apply_theme(right_outline, "inline", "BackgroundColor3")
@@ -1897,23 +1573,6 @@ function library:multi_slider(options)
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
-    
-    local right_value = library:create("TextLabel", {
-        FontFace = fonts["ProggyClean"];
-        TextColor3 = rgb(255, 255, 255);
-        BorderColor3 = rgb(0, 0, 0);
-        Text = tostring(cfg.right_default) .. cfg.right_suffix;
-        Parent = right_inline;
-        Size = dim2(1, -4, 1, 0);
-        Position = dim2(0, 2, 0, 0);
-        BackgroundTransparency = 1;
-        TextXAlignment = Enum.TextXAlignment.Center;
-        TextYAlignment = Enum.TextYAlignment.Center;
-        BorderSizePixel = 0;
-        TextSize = 10;
-        BackgroundColor3 = rgb(255, 255, 255),
-        ZIndex = 2
-    });
 
     -- Slider state
     cfg.left_value = cfg.left_default
@@ -1929,7 +1588,7 @@ function library:multi_slider(options)
         cfg.left_value = clamp(library:round(valuee, cfg.left_intervals), cfg.left_min, cfg.left_max)
         
         left_accent.Size = dim2((cfg.left_value - cfg.left_min) / (cfg.left_max - cfg.left_min), 0, 1, 0)
-        left_value.Text = tostring(cfg.left_value) .. cfg.left_suffix
+        left_text.Text = cfg.left_name .. "<font color='#AAAAAA'> - " .. tostring(cfg.left_value) .. cfg.left_suffix .. "</font>"
         
         flags[cfg.left_flag] = cfg.left_value
         cfg.callback(cfg.left_value, cfg.right_value)
@@ -1943,7 +1602,7 @@ function library:multi_slider(options)
         cfg.right_value = clamp(library:round(valuee, cfg.right_intervals), cfg.right_min, cfg.right_max)
         
         right_accent.Size = dim2((cfg.right_value - cfg.right_min) / (cfg.right_max - cfg.right_min), 0, 1, 0)
-        right_value.Text = tostring(cfg.right_value) .. cfg.right_suffix
+        right_text.Text = cfg.right_name .. "<font color='#AAAAAA'> - " .. tostring(cfg.right_value) .. cfg.right_suffix .. "</font>"
         
         flags[cfg.right_flag] = cfg.right_value
         cfg.callback(cfg.left_value, cfg.right_value)
@@ -2289,7 +1948,7 @@ function library:colorpicker(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
     
-    -- Elements (same as before)
+    -- Elements
     local colorpicker = library:create("Frame", {
         Parent = library.gui;
         Position = dim2(0.6888179183006287, 0, 0.24751244485378265, 0);
@@ -2493,7 +2152,7 @@ function library:colorpicker(options)
         ZIndex = 1006
     });
     
-    local inline_picker = library:create("Frame", {
+    local inline = library:create("Frame", {
         Parent = saturation_value_picker;
         Position = dim2(0, 1, 0, 1);
         BorderColor3 = rgb(0, 0, 0);
@@ -2574,12 +2233,12 @@ function library:colorpicker(options)
         local offset = vec2(mouse.X, mouse.Y - gui_offset) 
 
         if dragging_sat then	
-            s = clamp((offset - saturation_value_button.AbsolutePosition).X / saturation_value_button.AbsoluteSize.X, 0, 1)
-            v = 1 - clamp((offset - saturation_value_button.AbsolutePosition).Y / saturation_value_button.AbsoluteSize.Y, 0, 1)
+            s = math.clamp((offset - saturation_value_button.AbsolutePosition).X / saturation_value_button.AbsoluteSize.X, 0, 1)
+            v = 1 - math.clamp((offset - saturation_value_button.AbsolutePosition).Y / saturation_value_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
-            h = 1 - clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
+            h = 1 - math.clamp((offset - hue_button.AbsolutePosition).Y / hue_button.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
-            a = 1 - clamp((offset - alpha_button.AbsolutePosition).X / alpha_button.AbsoluteSize.X, 0, 1)
+            a = 1 - math.clamp((offset - alpha_button.AbsolutePosition).X / alpha_button.AbsoluteSize.X, 0, 1)
         end
 
         cfg.set(nil, nil)
