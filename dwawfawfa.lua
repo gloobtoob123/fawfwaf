@@ -1280,6 +1280,7 @@ function library:list(options)
     return setmetatable(cfg, library)
 end     
 
+-- MODIFIED: Slider with text inside and no title
 function library:slider(options) 
     local cfg = {
         name = options.name or nil,
@@ -1292,6 +1293,7 @@ function library:slider(options)
         intervals = options.interval or options.decimal or 1,
         default = options.default or 10,
         value = options.default or 10, 
+        display_text = options.display_text or options.name or "",
 
         ignore = options.ignore or false, 
         dragging = false,
@@ -1307,30 +1309,13 @@ function library:slider(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
     
-    local eeeee = library:create("TextLabel", {
-        FontFace = fonts["ProggyClean"];
-        TextColor3 = rgb(255, 255, 255);
-        RichText = true;
-        BorderColor3 = rgb(0, 0, 0);
-        Text = "max distance : 5000";
-        Parent = slider;
-        Size = dim2(1, 0, 0, 0);
-        Position = dim2(0, 1, 0, -2);
-        BackgroundTransparency = 1;
-        TextXAlignment = Enum.TextXAlignment.Left;
-        BorderSizePixel = 0;
-        AutomaticSize = Enum.AutomaticSize.XY;
-        TextSize = 12;
-        BackgroundColor3 = rgb(255, 255, 255)
-    });
-    
     local outline = library:create("TextButton", {
         Parent = slider;
         Text = "";
         AutoButtonColor = false;
-        Position = dim2(0, 0, 0, 13);
+        Position = dim2(0, 0, 0, 0);
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 12);
+        Size = dim2(1, 0, 0, 25);
         BorderSizePixel = 0;
         BackgroundColor3 = themes.preset.inline
     }); library:apply_theme(outline, "inline", "BackgroundColor3")
@@ -1352,6 +1337,24 @@ function library:slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(accent, "accent", "BackgroundColor3")
     
+    -- Text inside the slider
+    local slider_text = library:create("TextLabel", {
+        FontFace = fonts["ProggyClean"];
+        TextColor3 = rgb(255, 255, 255);
+        RichText = true;
+        BorderColor3 = rgb(0, 0, 0);
+        Text = "";
+        Parent = inline;
+        Size = dim2(1, 0, 1, 0);
+        Position = dim2(0, 0, 0, 0);
+        BackgroundTransparency = 1;
+        TextXAlignment = Enum.TextXAlignment.Center;
+        BorderSizePixel = 0;
+        TextSize = 12;
+        BackgroundColor3 = rgb(255, 255, 255),
+        ZIndex = 2
+    });
+    
     -- Functions 
     function cfg.set(value)
         local valuee = tonumber(value)
@@ -1363,7 +1366,13 @@ function library:slider(options)
         cfg.value = clamp(library:round(valuee, cfg.intervals), cfg.min, cfg.max)
 
         accent.Size = dim2((cfg.value - cfg.min) / (cfg.max - cfg.min), 0, 1, 0)
-        eeeee.Text = cfg.name ..  "<font color='#AAAAAA'> - " .. tostring(cfg.value) .. cfg.suffix .. "</font>"
+        
+        -- Set text based on display_text
+        if cfg.display_text and cfg.display_text ~= "" then
+            slider_text.Text = cfg.display_text .. ": " .. tostring(cfg.value) .. cfg.suffix
+        else
+            slider_text.Text = tostring(cfg.value) .. cfg.suffix
+        end
         
         flags[cfg.flag] = cfg.value
 
@@ -1399,10 +1408,10 @@ function library:slider(options)
     return setmetatable(cfg, library)
 end 
 
--- MODIFIED: Multi Slider Element - Text inside slider, no title
+-- MODIFIED: Multi Slider with text inside and no title
 function library:multi_slider(options)
     local cfg = {
-        name = options.name or "Multi Slider",
+        name = options.name or nil,
         
         -- Left slider options
         left_name = options.left_name or "Left",
@@ -1412,7 +1421,7 @@ function library:multi_slider(options)
         left_suffix = options.left_suffix or "",
         left_flag = options.left_flag or (options.flag_prefix and options.flag_prefix .. "_left") or "multi_left",
         left_intervals = options.left_interval or 1,
-        left_format = options.left_format or function(val) return cfg.left_name .. ": " .. val .. cfg.left_suffix end,
+        left_display_text = options.left_display_text or options.left_name or "",
         
         -- Right slider options
         right_name = options.right_name or "Right",
@@ -1422,17 +1431,17 @@ function library:multi_slider(options)
         right_suffix = options.right_suffix or "",
         right_flag = options.right_flag or (options.flag_prefix and options.flag_prefix .. "_right") or "multi_right",
         right_intervals = options.right_interval or 1,
-        right_format = options.right_format or function(val) return cfg.right_name .. ": " .. val .. cfg.right_suffix end,
+        right_display_text = options.right_display_text or options.right_name or "",
         
         callback = options.callback or function(left_val, right_val) end,
     }
 
-    -- Main container - No title, just the sliders
+    -- Main container
     local container = library:create("Frame", {
         Parent = self.elements;
         BackgroundTransparency = 1;
         BorderColor3 = rgb(0, 0, 0);
-        Size = dim2(1, 0, 0, 30); -- Reduced height since no title
+        Size = dim2(1, 0, 0, 25); -- Single row height
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1452,7 +1461,7 @@ function library:multi_slider(options)
         Parent = slider_row;
         BackgroundTransparency = 1;
         Position = dim2(0, 0, 0, 0);
-        Size = dim2(0.5, -4, 1, 0);
+        Size = dim2(0.5, -2, 1, 0);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1485,16 +1494,16 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(left_accent, "accent", "BackgroundColor3")
     
-    -- Left slider text (inside the slider)
+    -- Left slider text inside
     local left_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
         RichText = true;
         BorderColor3 = rgb(0, 0, 0);
-        Text = cfg.left_format(cfg.left_default);
-        Parent = left_outline;
+        Text = "";
+        Parent = left_inline;
         Size = dim2(1, 0, 1, 0);
-        Position = dim2(0, 1, 0, 0);
+        Position = dim2(0, 0, 0, 0);
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
@@ -1507,8 +1516,8 @@ function library:multi_slider(options)
     local right_container = library:create("Frame", {
         Parent = slider_row;
         BackgroundTransparency = 1;
-        Position = dim2(0.5, 4, 0, 0);
-        Size = dim2(0.5, -4, 1, 0);
+        Position = dim2(0.5, 2, 0, 0);
+        Size = dim2(0.5, -2, 1, 0);
         BorderSizePixel = 0;
         BackgroundColor3 = rgb(255, 255, 255)
     });
@@ -1541,16 +1550,16 @@ function library:multi_slider(options)
         BackgroundColor3 = themes.preset.accent
     }); library:apply_theme(right_accent, "accent", "BackgroundColor3")
     
-    -- Right slider text (inside the slider)
+    -- Right slider text inside
     local right_text = library:create("TextLabel", {
         FontFace = fonts["ProggyClean"];
         TextColor3 = rgb(255, 255, 255);
         RichText = true;
         BorderColor3 = rgb(0, 0, 0);
-        Text = cfg.right_format(cfg.right_default);
-        Parent = right_outline;
+        Text = "";
+        Parent = right_inline;
         Size = dim2(1, 0, 1, 0);
-        Position = dim2(0, 1, 0, 0);
+        Position = dim2(0, 0, 0, 0);
         BackgroundTransparency = 1;
         TextXAlignment = Enum.TextXAlignment.Center;
         BorderSizePixel = 0;
@@ -1573,7 +1582,13 @@ function library:multi_slider(options)
         cfg.left_value = clamp(library:round(valuee, cfg.left_intervals), cfg.left_min, cfg.left_max)
         
         left_accent.Size = dim2((cfg.left_value - cfg.left_min) / (cfg.left_max - cfg.left_min), 0, 1, 0)
-        left_text.Text = cfg.left_format(cfg.left_value)
+        
+        -- Set text based on left_display_text
+        if cfg.left_display_text and cfg.left_display_text ~= "" then
+            left_text.Text = cfg.left_display_text .. ": " .. tostring(cfg.left_value) .. cfg.left_suffix
+        else
+            left_text.Text = tostring(cfg.left_value) .. cfg.left_suffix
+        end
         
         flags[cfg.left_flag] = cfg.left_value
         cfg.callback(cfg.left_value, cfg.right_value)
@@ -1587,7 +1602,13 @@ function library:multi_slider(options)
         cfg.right_value = clamp(library:round(valuee, cfg.right_intervals), cfg.right_min, cfg.right_max)
         
         right_accent.Size = dim2((cfg.right_value - cfg.right_min) / (cfg.right_max - cfg.right_min), 0, 1, 0)
-        right_text.Text = cfg.right_format(cfg.right_value)
+        
+        -- Set text based on right_display_text
+        if cfg.right_display_text and cfg.right_display_text ~= "" then
+            right_text.Text = cfg.right_display_text .. ": " .. tostring(cfg.right_value) .. cfg.right_suffix
+        else
+            right_text.Text = tostring(cfg.right_value) .. cfg.right_suffix
+        end
         
         flags[cfg.right_flag] = cfg.right_value
         cfg.callback(cfg.left_value, cfg.right_value)
@@ -2354,7 +2375,7 @@ function library:textbox(options)
     return setmetatable(cfg, library)
 end 
 
--- FIXED: Keybind mode dropdown with proper background sizing
+-- FIXED: Keybind with proper box sizing for mode options
 function library:keybind(options) 
     local cfg = {
         flag = options.flag or options.name or "Flag",
@@ -2418,15 +2439,15 @@ function library:keybind(options)
         BackgroundColor3 = rgb(255, 255, 255)
     });
 
-    -- FIXED: Holder with proper sizing that wraps text correctly
+    -- Holder - Fixed to properly size to content
     local accent = library:create("Frame", {
         Parent = library.gui;
         Visible = false;
-        Size = dim2(0, 0, 0, 0);
+        Size = dim2(0, 0, 0, 0); -- Will auto size
         Position = dim2(0, 500, 0, 100);
         BorderColor3 = rgb(0, 0, 0);
         BorderSizePixel = 0;
-        AutomaticSize = Enum.AutomaticSize.Y;
+        AutomaticSize = Enum.AutomaticSize.XY;
         BackgroundColor3 = themes.preset.inline,
         ZIndex = 1000
     }); library:apply_theme(accent, "inline", "BackgroundColor3")
@@ -2437,46 +2458,44 @@ function library:keybind(options)
         Position = dim2(0, 1, 0, 1);
         BorderColor3 = rgb(0, 0, 0);
         BorderSizePixel = 0;
-        AutomaticSize = Enum.AutomaticSize.Y;
+        AutomaticSize = Enum.AutomaticSize.XY;
         BackgroundColor3 = themes.preset.inline,
         ZIndex = 1001
     }); library:apply_theme(inline, "inline", "BackgroundColor3")
 
-    -- FIXED: Use UIListLayout with proper padding and sizing
-    local layout = library:create("UIListLayout", {
+    local list_layout = library:create("UIListLayout", {
         Parent = inline;
         Padding = dim(0, 4);
         SortOrder = Enum.SortOrder.LayoutOrder;
-        HorizontalAlignment = Enum.HorizontalAlignment.Left;
-        FillDirection = Enum.FillDirection.Vertical;
+        HorizontalAlignment = Enum.HorizontalAlignment.Center;
     });
 
     library:create("UIPadding", {
-        PaddingTop = dim(0, 6);
-        PaddingBottom = dim(0, 6);
+        PaddingTop = dim(0, 4);
+        PaddingBottom = dim(0, 4);
         Parent = inline;
-        PaddingRight = dim(0, 12);
-        PaddingLeft = dim(0, 12)
+        PaddingRight = dim(0, 8);
+        PaddingLeft = dim(0, 8)
     });
 
     local options = {"Hold", "Toggle", "Always"}
     
     for _, v in options do
-        -- FIXED: Each option gets proper sizing that wraps the text
         local option = library:create("TextButton", {
             FontFace = fonts["ProggyClean"];
             TextColor3 = rgb(170, 170, 170);
             BorderColor3 = rgb(0, 0, 0);
             Text = v;
             Parent = inline;
+            Position = dim2(0, 0, 0, 0);
             BackgroundTransparency = 1;
-            TextXAlignment = Enum.TextXAlignment.Left;
+            TextXAlignment = Enum.TextXAlignment.Center;
             BorderSizePixel = 0;
             AutomaticSize = Enum.AutomaticSize.XY;
             TextSize = 12;
             BackgroundColor3 = rgb(255, 255, 255),
             ZIndex = 1002,
-            Size = dim2(0, 0, 0, 14), -- Fixed height, auto width
+            Size = dim2(0, 0, 0, 0)
         }); cfg.hold_instances[v] = option
 
         option.MouseButton1Click:Connect(function()
@@ -2561,7 +2580,6 @@ function library:keybind(options)
         accent.Visible = bool
         
         if bool then
-            -- FIXED: Size is automatically determined by content
             accent.Position = dim2(0, keybind_holder.AbsolutePosition.X, 0, keybind_holder.AbsolutePosition.Y + 20)
             accent.ZIndex = 1000
         end
