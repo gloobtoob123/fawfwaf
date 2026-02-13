@@ -1007,14 +1007,14 @@ function library:section(properties)
 end 
 
 -- Elements  
--- FIXED TOGGLE FUNCTION
+-- FIXED TOGGLE FUNCTION - NOW PROPERLY RESPECTS DEFAULT VALUE
 function library:toggle(options) 
     local cfg = {
-        enabled = options.default or false, -- Initialize enabled state
+        enabled = options.default or false, -- Initialize enabled state from default
         name = options.name or "Toggle",
         flag = options.flag or options.name or "Flag",
         
-        default = options.default or false,
+        default = options.default or false, 
         folding = options.folding or false, 
         callback = options.callback or function() end,
 
@@ -1066,7 +1066,7 @@ function library:toggle(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, -2, 1, -2);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline,
+        BackgroundColor3 = themes.preset.inline, -- Default to inline (disabled)
         Name = "Fill"
     });                
     
@@ -1097,6 +1097,7 @@ function library:toggle(options)
     function cfg.set(bool)
         bool = bool or false -- Ensure boolean
         cfg.enabled = bool
+        -- Use accent color when enabled, inline color when disabled
         fill.BackgroundColor3 = bool and themes.preset.accent or themes.preset.inline
         flags[cfg.flag] = bool
         cfg.callback(bool)
@@ -1106,7 +1107,7 @@ function library:toggle(options)
         end
     end 
 
-    -- Set initial state
+    -- Set initial state based on default value
     cfg.set(cfg.default)
     config_flags[cfg.flag] = cfg.set
 
