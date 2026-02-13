@@ -1007,14 +1007,14 @@ function library:section(properties)
 end 
 
 -- Elements  
--- FIXED TOGGLE FUNCTION - NOW PROPERLY RESPECTS DEFAULT VALUE
+-- FIXED TOGGLE FUNCTION - PROPERLY HANDLES DEFAULT PARAMETER
 function library:toggle(options) 
     local cfg = {
-        enabled = options.default or false, -- Initialize enabled state from default
+        enabled = options.default or false,
         name = options.name or "Toggle",
         flag = options.flag or options.name or "Flag",
         
-        default = options.default or false, 
+        default = options.default or false,
         folding = options.folding or false, 
         callback = options.callback or function() end,
 
@@ -1023,7 +1023,6 @@ function library:toggle(options)
     }
 
     -- Instances
-    -- Element
     local toggle = library:create("TextButton", {
         Parent = self.elements;
         BackgroundTransparency = 1;
@@ -1066,7 +1065,7 @@ function library:toggle(options)
         BorderColor3 = rgb(0, 0, 0);
         Size = dim2(1, -2, 1, -2);
         BorderSizePixel = 0;
-        BackgroundColor3 = themes.preset.inline, -- Default to inline (disabled)
+        BackgroundColor3 = themes.preset.inline,
         Name = "Fill"
     });                
     
@@ -1080,7 +1079,7 @@ function library:toggle(options)
             Position = dim2(0, 4, 0, 21);
             Size = dim2(1, 0, 0, 0);
             BorderSizePixel = 0;
-            Visible = cfg.default; -- Set visibility based on default state
+            Visible = cfg.default;
             AutomaticSize = Enum.AutomaticSize.Y;
             BackgroundColor3 = rgb(255, 255, 255)
         }); cfg.elements = elements
@@ -1095,25 +1094,24 @@ function library:toggle(options)
     
     -- Functions
     function cfg.set(bool)
-        bool = bool or false -- Ensure boolean
+        bool = bool ~= nil and bool or false
         cfg.enabled = bool
-        -- Use accent color when enabled, inline color when disabled
         fill.BackgroundColor3 = bool and themes.preset.accent or themes.preset.inline
         flags[cfg.flag] = bool
         cfg.callback(bool)
 
-        if cfg.folding then 
+        if cfg.folding and elements then 
             elements.Visible = bool
         end
     end 
 
-    -- Set initial state based on default value
+    -- Set initial state
     cfg.set(cfg.default)
     config_flags[cfg.flag] = cfg.set
 
     -- Connections
     toggle.MouseButton1Click:Connect(function()
-        cfg.set(not cfg.enabled) -- Toggle using current state
+        cfg.set(not cfg.enabled)
     end)
 
     return setmetatable(cfg, library)
